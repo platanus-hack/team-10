@@ -10,7 +10,7 @@ const app = express();
 app.use(bodyParser.json());
 
 // Routes
-const whatsappRoutes = require('./routes/whatsappRoutes');
-app.use('/whatsapp', whatsappRoutes);
+// const whatsappRoutes = require('./routes/whatsappRoutes');
+// app.use('/whatsapp', whatsappRoutes);
 
 module.exports = app;
