@@ -1,13 +1,13 @@
 const UserStates = require('../constants/userStates');
 const ClaudeService = require('../services/claudeService');
 const StateHandler = require('../handlers/stateHandler');
-const prisma = require('../lib/prisma');
+const prisma = require('../lib/prisma').default;
 
 class MessageController {
     constructor(client) {
         this.client = client;
-        this.stateHandler = new StateHandler();
         this.claudeService = new ClaudeService(process.env.ANTHROPIC_API_KEY);
+        this.stateHandler = new StateHandler(prisma);
         this.prisma = prisma;
     }
 

@@ -28,7 +28,8 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - .wwebjs_auth:/usr/src/app/.wwebjs_auth
+      - whatsapp-auth:/usr/src/app/.wwebjs_auth
+      - whatsapp-cache:/usr/src/app/.wwebjs_cache
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
     env_file:
@@ -42,3 +43,5 @@ volumes:
     name: sobuddy-postgres-data
   whatsapp-auth:
     name: sobuddy-whatsapp-auth
+  whatsapp-cache:
+    name: sobuddy-whatsapp-cache

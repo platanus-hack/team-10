@@ -57,6 +57,14 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 ENV NODE_ENV=production
 
+# Create and set permissions for WhatsApp Web.js directories
+RUN mkdir -p /usr/src/app/.wwebjs_auth /usr/src/app/.wwebjs_cache && \
+    chown -R bun:bun /usr/src/app/.wwebjs_auth /usr/src/app/.wwebjs_cache && \
+    chmod 755 /usr/src/app/.wwebjs_auth /usr/src/app/.wwebjs_cache
+
+# Copy prisma directory including migrations
+COPY prisma ./prisma/
+
 # Switch to non-root user
 USER bun
 

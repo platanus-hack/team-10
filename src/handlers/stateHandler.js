@@ -1,7 +1,7 @@
 const prisma = require('../lib/prisma');
 
 class StateHandler {
-    constructor() {
+    constructor(prisma) {
         this.prisma = prisma;
     }
 

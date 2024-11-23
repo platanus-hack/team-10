@@ -5,8 +5,11 @@ const StateHandler = require('../handlers/stateHandler');
 
 class WhatsAppBot {
     constructor() {
+        console.log('Initializing WhatsAppBot...');
         this.client = new Client({
-            authStrategy: new LocalAuth(),
+            authStrategy: new LocalAuth({
+                dataPath: '/usr/src/app/.wwebjs_auth'
+            }),
             puppeteer: {
                 headless: true,
                 args: [
@@ -16,9 +19,19 @@ class WhatsAppBot {
                     '--disable-accelerated-2d-canvas',
                     '--no-first-run',
                     '--no-zygote',
-                    '--disable-gpu'
+                    '--single-process',
+                    '--disable-gpu',
+                    '--disable-extensions',
+                    '--disable-software-rasterizer',
+                    '--disable-dev-tools'
                 ],
-                executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium'
+                executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium',
+                timeout: 60000
+            },
+            webVersion: '2.2402.5',
+            webVersionCache: {
+                type: 'local',
+                path: '/usr/src/app/.wwebjs_cache'
             }
         });
         
@@ -29,18 +42,40 @@ class WhatsAppBot {
     }
 
     setupEventListeners() {
+        this.client.on('loading_screen', (percent, message) => {
+            console.log('LOADING SCREEN', percent, message);
+        });
+
+        this.client.on('authenticated', () => {
+            console.log('AUTHENTICATED - Session is ready');
+        });
+
+        this.client.on('auth_failure', msg => {
+            console.error('AUTHENTICATION FAILURE', msg);
+        });
+
         this.client.on('qr', (qr) => {
-            console.log('QR RECEIVED', qr);
+            console.log('QR RECEIVED - Waiting for scan');
             qrcode.generate(qr, { small: true });
         });
 
         this.client.on('ready', async () => {
-            console.log('Client is ready!');
-            await this.messageController.initializeBot();
+            console.log('WhatsApp Client is ready and fully connected!');
+            try {
+                await this.messageController.initializeBot();
+                console.log('Bot initialized successfully');
+            } catch (error) {
+                console.error('Error initializing bot:', error);
+            }
         });
 
         this.client.on('message', async (msg) => {
-            await this.messageController.handleMessage(msg);
+            console.log('Received message:', msg.body);
+            try {
+                await this.messageController.handleMessage(msg);
+            } catch (error) {
+                console.error('Error handling message:', error);
+            }
         });
 
         this.client.on('disconnected', (reason) => {
@@ -49,7 +84,11 @@ class WhatsAppBot {
     }
 
     initialize() {
-        this.client.initialize();
+        console.log('Starting WhatsApp client initialization...');
+        this.client.initialize()
+            .catch(error => {
+                console.error('Failed to initialize WhatsApp client:', error);
+            });
     }
 }
 
