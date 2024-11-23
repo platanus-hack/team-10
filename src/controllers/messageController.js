@@ -1,11 +1,29 @@
 const UserStates = require('../constants/userStates');
 const ClaudeService = require('../services/claudeService');
+const StateHandler = require('../handlers/stateHandler');
 
 class MessageController {
     constructor(client) {
         this.client = client;
         this.stateHandler = new StateHandler();
         this.claudeService = new ClaudeService();
+    }
+
+    async initializeBot() {
+        try {
+            console.log('Initializing bot...');
+            
+            // You can add initialization tasks here, such as:
+            // - Loading conversation history
+            // - Setting up scheduled tasks
+            // - Connecting to databases
+            // - Loading any cached data
+            
+            console.log('Bot initialization complete! 🤖✨');
+        } catch (error) {
+            console.error('Error initializing bot:', error);
+            throw error;
+        }
     }
 
     async handleMessage(msg) {
@@ -38,8 +56,8 @@ class MessageController {
 
     async handleStateMessage(msg, currentState) {
         switch (currentState) {
-            case UserStates.ONBOARDING_NAME:
-                await this.handleOnboardingName(msg);
+            case UserStates.ONBOARDING:
+                await this.handleOnboarding(msg);
                 break;
             case UserStates.ONBOARDING_RISK_TIMES:
                 await this.handleOnboardingRiskTimes(msg);
