@@ -2,15 +2,16 @@ version: '3.8'
 
 services:
   db:
-    image: postgres:15
+    image: postgres:16
     container_name: sobuddy-db
     restart: unless-stopped
     environment:
-      - POSTGRES_USER=sobuddy
-      - POSTGRES_PASSWORD=sobuddy
-      - POSTGRES_DB=sobuddy
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
     volumes:
       - postgres-data:/var/lib/postgresql/data
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "5432:5432"
 
@@ -28,12 +29,12 @@ services:
       - whatsapp-auth:/app/.wwebjs_auth
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=postgresql://sobuddy:sobuddy@db:5432/sobuddy
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
       - PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
       - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
     env_file:
       - .env
-    command: sh -c "npx prisma migrate deploy && npm start"
+    command: sh -c "sleep 5 && npx prisma migrate deploy && npm start"
     depends_on:
       - db
 

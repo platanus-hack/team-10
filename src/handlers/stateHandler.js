@@ -1,41 +1,56 @@
+const prisma = require('../lib/prisma');
+
 class StateHandler {
     constructor() {
-        this.userStates = new Map();
-        this.userContext = new Map();
+        this.prisma = prisma;
     }
 
-    setState(userId, state, context = {}) {
-        this.userStates.set(userId, state);
-        this.userContext.set(userId, {
-            ...context,
-            lastStateChange: new Date()
+    async setState(userId, state, context = {}) {
+        await this.prisma.user.update({
+            where: { phoneNumber: userId },
+            data: {
+                currentState: state,
+                lastInteraction: new Date()
+            }
         });
     }
 
-    getState(userId) {
-        return this.userStates.get(userId) || 'IDLE';
+    async getState(userId) {
+        const user = await this.prisma.user.findUnique({
+            where: { phoneNumber: userId },
+            select: { currentState: true }
+        });
+        return user?.currentState || 'IDLE';
     }
 
-    getContext(userId) {
-        return this.userContext.get(userId) || {};
+    async hasState(userId) {
+        const user = await this.prisma.user.findUnique({
+            where: { phoneNumber: userId },
+            select: { currentState: true }
+        });
+        return user?.currentState != null;
     }
 
-    hasState(userId) {
-        return this.userStates.has(userId);
+    async clearState(userId) {
+        await this.prisma.user.update({
+            where: { phoneNumber: userId },
+            data: { currentState: null }
+        });
+    }   
+
+    async isInOnboarding(userId) {
+        const state = await this.getState(userId);
+        return state === 'ONBOARDING';
     }
 
-    clearState(userId) {
-        this.userStates.delete(userId);
-        this.userContext.delete(userId);
+    async isInConversation(userId) {
+        const state = await this.getState(userId);
+        return state === 'IN_CONVERSATION';
     }
 
-    isInOnboarding(userId) {
-        const state = this.getState(userId);
-        return state.startsWith('ONBOARDING_');
-    }
-
-    isInConversation(userId) {
-        return this.getState(userId) === 'IN_CONVERSATION';
+    async isInCheckIn(userId) {
+        const state = await this.getState(userId);
+        return state === 'CHECKIN';
     }
 }
 

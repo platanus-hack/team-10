@@ -11,6 +11,13 @@ model User {
   id            String    @id @default(uuid())
   phoneNumber   String    @unique // WhatsApp phone number
   name          String?
+  gender        String?
+  age           Int?
+  workStatus    String?
+  relationshipStatus String?
+  homeStatus       String?
+
+  // General tracking
   lastInteraction DateTime @default(now())
   isActive      Boolean   @default(true)
   createdAt     DateTime  @default(now())
@@ -23,25 +30,18 @@ model User {
   currentState  String?   // For state management
 
   // Recovery tracking
-  sobrietyDate        DateTime?
-  lastCheckIn         DateTime?
-  checkInStreak      Int       @default(0)
   triggers           String[]
   copingStrategies   String[]
-  supportContacts    Contact[]
   riskLevel          Int       @default(0)
 
-  @@index([phoneNumber])
-}
+  // Check-in 
+  sobrietyStartDate        DateTime?
+  checkInStreak      Int       @default(0)
+  weeklyCheckInDate DateTime?
+  dailyCheckInDate  DateTime?
+  lastCheckInTime   DateTime?
 
-model Contact {
-    id            String    @id @default(uuid())
-    userId        String
-    user          User      @relation(fields: [userId], references: [id])
-    name          String
-    phoneNumber   String
-    relationship  String
-    isEmergency   Boolean   @default(false)
+  @@index([phoneNumber])
 }
 
 

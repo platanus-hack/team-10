@@ -1,6 +1,6 @@
-FROM node:18-slim
+FROM oven/bun:1 AS base
 
-# Install additional dependencies
+# Install additional dependencies for Chromium
 RUN apt-get update && apt-get install -y \
     chromium \
     ca-certificates \
@@ -41,20 +41,48 @@ RUN apt-get update && apt-get install -y \
     xdg-utils \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app
+WORKDIR /usr/src/app
 
-COPY package*.json ./
-RUN npm install
+# Install dependencies into temp directory
+FROM base AS install
+RUN mkdir -p /temp/dev
+COPY package.json bun.lockb /temp/dev/
+RUN cd /temp/dev && bun install --frozen-lockfile
 
-COPY prisma ./prisma/
-RUN npx prisma generate
+# Install production dependencies
+RUN mkdir -p /temp/prod
+COPY package.json bun.lockb /temp/prod/
+RUN cd /temp/prod && bun install --frozen-lockfile --production
 
+# Setup for build and Prisma generation
+FROM base AS prerelease
+COPY --from=install /temp/dev/node_modules node_modules
 COPY . .
 
+# Generate Prisma client
+COPY prisma ./prisma/
+RUN bunx prisma generate
+
+# [Optional] Run tests and build
+ENV NODE_ENV=production
+RUN bun test
+RUN bun run build
+
+# Final stage
+FROM base AS release
+COPY --from=install /temp/prod/node_modules node_modules
+COPY --from=prerelease /usr/src/app/prisma ./prisma
+COPY --from=prerelease /usr/src/app/dist ./dist
+COPY --from=prerelease /usr/src/app/package.json .
+
+# Set environment variables
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 ENV NODE_ENV=production
 
+# Switch to non-root user
+USER bun
+
 EXPOSE 3000
 
-CMD ["npm", "start"]
+ENTRYPOINT [ "bun", "run", "start" ]

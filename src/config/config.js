@@ -7,11 +7,4 @@ module.exports = {
         maxTokens: 1024,
         temperature: 0.7
     },
-    mongodb: {
-        uri: process.env.MONGODB_URI || 'mongodb://localhost/sobuddy',
-        options: {
-            useNewUrlParser: true,
-            useUnifiedTopology: true
-        }
-    },
 };

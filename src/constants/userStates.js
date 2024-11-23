@@ -3,12 +3,13 @@ const UserStates = {
   IDLE: 'IDLE',
   
   // Onboarding states
-  ONBOARDING_NAME: 'ONBOARDING_NAME',
-  ONBOARDING_RISK_TIMES: 'ONBOARDING_RISK_TIMES',
-  ONBOARDING_COMPLETE: 'ONBOARDING_COMPLETE',
+  ONBOARDING: 'ONBOARDING',
   
   // Active conversation (Claude handling)
   IN_CONVERSATION: 'IN_CONVERSATION',
+
+  // Check-in states
+  CHECKIN: 'CHECKIN',
 };
 
 module.exports = UserStates;
