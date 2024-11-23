@@ -31,6 +31,8 @@ services:
       - .wwebjs_auth:/usr/src/app/.wwebjs_auth
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
+    env_file:
+      - .env
     depends_on:
       db:
         condition: service_healthy
