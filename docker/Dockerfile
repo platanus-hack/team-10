@@ -56,13 +56,11 @@ RUN bunx prisma generate
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 ENV NODE_ENV=production
-ENV DATABASE_URL="postgresql://postgres:postgres@db:5432/postgres"
 
 # Switch to non-root user
 USER bun
 
 EXPOSE 3000
 
-RUN bunx prisma migrate deploy
-
-CMD ["bun", "run", "start"]
+# Run migrations and start the app
+CMD ["sh", "-c", "bunx prisma migrate deploy && bun run start"]
