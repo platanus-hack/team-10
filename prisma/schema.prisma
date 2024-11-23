@@ -7,15 +7,56 @@ generator client {
   provider = "prisma-client-js"
 }
 
+enum Gender {
+  MALE
+  FEMALE
+  NON_BINARY
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+enum WorkStatus {
+  EMPLOYED
+  UNEMPLOYED
+  STUDENT
+  RETIRED
+  OTHER
+}
+
+enum RelationshipStatus {
+  SINGLE
+  MARRIED
+  DIVORCED
+  WIDOWED
+  IN_RELATIONSHIP
+  COMPLICATED
+  OTHER
+}
+
+enum HomeStatus {
+  LIVES_ALONE
+  LIVES_WITH_FAMILY
+  LIVES_WITH_ROOMMATES
+  HOMELESS
+  OTHER
+}
+
+enum ConversationState {
+  IDLE
+  ONBOARDING
+  IN_CONVERSATION
+  CHECKIN
+}
+
 model User {
   id            String    @id @default(uuid())
   phoneNumber   String    @unique // WhatsApp phone number
   name          String?
-  gender        String?
+  gender        Gender?
   age           Int?
-  workStatus    String?
-  relationshipStatus String?
-  homeStatus       String?
+  workStatus    WorkStatus?
+  relationshipStatus RelationshipStatus?
+  homeStatus    HomeStatus?
 
   // General tracking
   lastInteraction DateTime @default(now())
@@ -27,7 +68,7 @@ model User {
   totalMessages Int       @default(0)
   allMessages   String[]
   lastMessage   String?
-  currentState  String?   // For state management
+  currentState  ConversationState?   // For state management
 
   // Recovery tracking
   triggers           String[]
