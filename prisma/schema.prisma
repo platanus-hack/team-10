@@ -1,5 +1,5 @@
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -18,10 +18,30 @@ model User {
 
   // Conversation tracking
   totalMessages Int       @default(0)
+  allMessages   String[]
   lastMessage   String?
   currentState  String?   // For state management
 
+  // Recovery tracking
+  sobrietyDate        DateTime?
+  lastCheckIn         DateTime?
+  checkInStreak      Int       @default(0)
+  triggers           String[]
+  copingStrategies   String[]
+  supportContacts    Contact[]
+  riskLevel          Int       @default(0)
+
   @@index([phoneNumber])
+}
+
+model Contact {
+    id            String    @id @default(uuid())
+    userId        String
+    user          User      @relation(fields: [userId], references: [id])
+    name          String
+    phoneNumber   String
+    relationship  String
+    isEmergency   Boolean   @default(false)
 }
 
 

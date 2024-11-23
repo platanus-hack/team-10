@@ -1,6 +1,19 @@
 version: '3.8'
 
 services:
+  db:
+    image: postgres:15
+    container_name: sobuddy-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=sobuddy
+      - POSTGRES_PASSWORD=sobuddy
+      - POSTGRES_DB=sobuddy
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
   sobuddy:
     build:
       context: .
@@ -12,19 +25,20 @@ services:
     volumes:
       - .:/app
       - /app/node_modules
-      - sqlite-data:/app/prisma
       - whatsapp-auth:/app/.wwebjs_auth
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=file:/app/prisma/sobuddy.db
+      - DATABASE_URL=postgresql://sobuddy:sobuddy@db:5432/sobuddy
       - PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
       - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
     env_file:
       - .env
     command: sh -c "npx prisma migrate deploy && npm start"
+    depends_on:
+      - db
 
 volumes:
-  sqlite-data:
-    name: sobuddy-sqlite-data
+  postgres-data:
+    name: sobuddy-postgres-data
   whatsapp-auth:
     name: sobuddy-whatsapp-auth
