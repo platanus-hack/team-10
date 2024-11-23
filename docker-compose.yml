@@ -3,7 +3,6 @@ version: '3.8'
 services:
   db:
     image: postgres:16
-    container_name: sobuddy-db
     restart: unless-stopped
     environment:
       - POSTGRES_USER=postgres
@@ -14,29 +13,27 @@ services:
       - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "postgres"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
 
   sobuddy:
     build:
       context: .
       dockerfile: docker/Dockerfile
-    container_name: sobuddy-bot
     restart: unless-stopped
     ports:
       - "3000:3000"
     volumes:
-      - .:/app
-      - /app/node_modules
-      - whatsapp-auth:/app/.wwebjs_auth
+      - .wwebjs_auth:/usr/src/app/.wwebjs_auth
     environment:
-      - NODE_ENV=production
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
-      - PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-      - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
-    env_file:
-      - .env
-    command: sh -c "sleep 5 && npx prisma migrate deploy && npm start"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
 volumes:
   postgres-data:

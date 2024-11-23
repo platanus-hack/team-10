@@ -1,4 +1,4 @@
-FROM oven/bun:1 AS base
+FROM oven/bun:1
 
 # Install additional dependencies for Chromium
 RUN apt-get update && apt-get install -y \
@@ -43,46 +43,26 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /usr/src/app
 
-# Install dependencies into temp directory
-FROM base AS install
-RUN mkdir -p /temp/dev
-COPY package.json bun.lockb /temp/dev/
-RUN cd /temp/dev && bun install --frozen-lockfile
-
-# Install production dependencies
-RUN mkdir -p /temp/prod
-COPY package.json bun.lockb /temp/prod/
-RUN cd /temp/prod && bun install --frozen-lockfile --production
-
-# Setup for build and Prisma generation
-FROM base AS prerelease
-COPY --from=install /temp/dev/node_modules node_modules
+# Copy everything
 COPY . .
 
+# Install dependencies
+RUN bun install
+
 # Generate Prisma client
-COPY prisma ./prisma/
 RUN bunx prisma generate
-
-# [Optional] Run tests and build
-ENV NODE_ENV=production
-RUN bun test
-RUN bun run build
-
-# Final stage
-FROM base AS release
-COPY --from=install /temp/prod/node_modules node_modules
-COPY --from=prerelease /usr/src/app/prisma ./prisma
-COPY --from=prerelease /usr/src/app/dist ./dist
-COPY --from=prerelease /usr/src/app/package.json .
 
 # Set environment variables
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 ENV NODE_ENV=production
+ENV DATABASE_URL="postgresql://postgres:postgres@db:5432/postgres"
 
 # Switch to non-root user
 USER bun
 
 EXPOSE 3000
 
-ENTRYPOINT [ "bun", "run", "start" ]
+RUN bunx prisma migrate deploy
+
+CMD ["bun", "run", "start"]
