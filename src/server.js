@@ -1,5 +1,5 @@
 const app = require('./app');
-const WhatsAppBot = require('./services/whatsapp-bot');
+const WhatsAppBot = require('./services/whatsappBot');
 
 // Initialize WhatsApp bot
 const whatsappBot = new WhatsAppBot();
