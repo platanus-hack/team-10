@@ -6,7 +6,7 @@ class MessageController {
     constructor(client) {
         this.client = client;
         this.stateHandler = new StateHandler();
-        this.claudeService = new ClaudeService();
+        this.claudeService = new ClaudeService(process.env.ANTHROPIC_API_KEY);
     }
 
     async initializeBot() {
@@ -107,7 +107,7 @@ class MessageController {
     }
 
     async handleConversation(msg) {
-        const response = await this.claudeService.getResponse(msg.body);
+        const response = await this.claudeService.sendPrompt(msg.body);
         await msg.reply(response);
         
         // Clear conversation state after Claude responds
