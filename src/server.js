@@ -1,4 +1,9 @@
 const app = require('./app');
+const WhatsAppBot = require('./services/whatsapp-bot');
+
+// Initialize WhatsApp bot
+const whatsappBot = new WhatsAppBot();
+whatsappBot.initialize();
 
 // Server
 const PORT = process.env.PORT || 3000;
