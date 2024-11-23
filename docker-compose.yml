@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  sobuddy:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: sobuddy-bot
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - sqlite-data:/app/prisma
+      - whatsapp-auth:/app/.wwebjs_auth
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=file:/app/prisma/sobuddy.db
+      - PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+      - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+    env_file:
+      - .env
+    command: sh -c "npx prisma migrate deploy && npm start"
+
+volumes:
+  sqlite-data:
+    name: sobuddy-sqlite-data
+  whatsapp-auth:
+    name: sobuddy-whatsapp-auth
