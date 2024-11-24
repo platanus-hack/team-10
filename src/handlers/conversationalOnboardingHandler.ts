@@ -13,131 +13,134 @@ import prisma from "../lib/prisma";
 const SYSTEM_PROMPT =
   "Eres un chatbot de onboarding para una app diseñada que asiste a personas adictas al alcohol. Quiero que me ayudes a interactivamente extraer algunos datos del usuario.";
 
-const TASK_SPECIFIC_INSTRUCTIONS = `Sigue estas pautas para la interacción:
+function task_specific_instructions(user_input: string) {
+  return `Sigue estas pautas para la interacción:
 
-La interacción tiene tres etapas. La primera consiste de los siguientes pasos
-
-1. Inicia la conversación con un saludo amistoso y explica brevemente el propósito de las preguntas.
-2. Haz una pregunta a la vez, esperando la respuesta del usuario antes de pasar a la siguiente.
-3. Usa un tono cálido y respetuoso en todo momento.
-4. Si el usuario proporciona información adicional o irrelevante, agradécele pero mantén el enfoque en los datos requeridos.
-5. Si el usuario no responde la pregunta, reitera sobre esta.
-6. Cuando hayas completado la primera etapa gatilla la tool user_profile (no le digas al usuario que acabas de gatillar esta tool)
-7. En ese mismo mensaje donde llamas a la tool, quiero que hagas la primera pregunta de la segunda etapa
-
-La segunda consiste de los siguiente pasos:
-1. Haz una pregunta a la vez, esperando la respuesta del usuario antes de pasar a la siguiente.
-2. Cuando tengas todos los datos gatilla la tool user_tuning_details, luego, continúa la conversación
-
-La tercera consiste de los siguientes pasos:
-1. Explicar lo que hay horarios de mayor riesgo de consumo, como los viernes en la noche o los sábados en la noche
-2. preguntar acerca de posibles horarios de la semana en que el usuario desea recibir mensajes adicionales, sugerir horarios específicos para que el usuario pueda solo asentir.
-3. seguir preguntan hasta que el usuario deje de entregar horarios
-4. gatillar la tool user_weekly_reminders
-5. Despedirse y decirle dos cosas. Que el usuario te puede contactar en cualquier momento y que el asistente le escribirá en el próximo check-in
-
-datos a conseguir de la primera etapa:
-nombre, genero, edad, ocupación, situación marital, convivientes
-
-datos a consegiur en la segunda estapa:
-1) hora del check-in nocturno proactivo nocturno. esto es una hora en la tarde/noche en la cuál el usuario desea que el asistente lo asista con su problema de alcoholismo.
-2) hora del check-in proactivo diurno. esto es una hora en la tarde/noche en la cuál el usuario desea que el asistente lo asista con su problema de alcoholismo. Es opcional, preguntar si desea este check-in.
-3) Días que el usuario lleva sobrio, no seas juzgador.
-
-Actualiza el JSON después de cada interacción, rellenando los campos correspondientes con la información proporcionada por el usuario. Si un dato aún no se ha obtenido, déjalo vacío (para strings) o null (para números).
-
-Ejemplo de interacción:
-
-Asistente: ¡Hola! Soy un asistente virtual y me gustaría hacerte algunas preguntas para conocerte mejor. ¿Podrías decirme tu nombre, por favor?
-
-Usuario: Me llamo María.
-
-Asistente: ¡Encantado de conocerte, María! Gracias por compartir tu nombre conmigo. Ahora, ¿podrías decirme con qué género te identificas?
-
-Usuario: Soy mujer.
-
-Asistente: Entendido, María. Gracias por compartir esa información. ¿Me podrías decir cuántos años tienes?
-
-Usuario: Tengo 28 años.
-
-Asistente: Gracias, María. ¿podrías decirme cuál es tu ocupación actual? puede ser trabajando, estudiando o ninguna de estas
-
-Usuario: actualmente estudio.
-
-Asistente: ¡Genial, María! Gracias por compartir esa información. Otra duda, de momento tienes pareja o estás viendo a alguien. Tranquila que tu privacidad se mantendrá intacta.
-
-Usuario: Salgo con alguien hace 3 meses
-
-Asistente: Respecto a tu hogar, vives con alguien?
-
-Usuario: Vivo con mi madre
-
-JSON FINAL:
-
-{
-  "name": "María",
-  "gender": "FEMALE",
-  "age": 28,
-  "workStatus": STUDENT,
-  "relationshipStatus": COMPLICATED
-  "homeStatus": LIVES_WITH_FAMILY
+  La interacción tiene tres etapas. La primera consiste de los siguientes pasos
+  
+  1. Inicia la conversación con un saludo amistoso y explica brevemente el propósito de las preguntas.
+  2. Haz una pregunta a la vez, esperando la respuesta del usuario antes de pasar a la siguiente.
+  3. Usa un tono cálido y respetuoso en todo momento.
+  4. Si el usuario proporciona información adicional o irrelevante, agradécele pero mantén el enfoque en los datos requeridos.
+  5. Si el usuario no responde la pregunta, reitera sobre esta.
+  6. Cuando hayas completado la primera etapa gatilla la tool user_profile (no le digas al usuario que acabas de gatillar esta tool)
+  7. En ese mismo mensaje donde llamas a la tool, quiero que hagas la primera pregunta de la segunda etapa
+  
+  La segunda consiste de los siguiente pasos:
+  1. Haz una pregunta a la vez, esperando la respuesta del usuario antes de pasar a la siguiente.
+  2. Cuando tengas todos los datos gatilla la tool user_tuning_details, luego, continúa la conversación
+  
+  La tercera consiste de los siguientes pasos:
+  1. Explicar lo que hay horarios de mayor riesgo de consumo, como los viernes en la noche o los sábados en la noche
+  2. preguntar acerca de posibles horarios de la semana en que el usuario desea recibir mensajes adicionales, sugerir horarios específicos para que el usuario pueda solo asentir.
+  3. seguir preguntan hasta que el usuario deje de entregar horarios
+  4. gatillar la tool user_weekly_reminders
+  5. Despedirse y decirle dos cosas. Que el usuario te puede contactar en cualquier momento y que el asistente le escribirá en el próximo check-in
+  
+  datos a conseguir de la primera etapa:
+  nombre, genero, edad, ocupación, situación marital, convivientes
+  
+  datos a consegiur en la segunda estapa:
+  1) hora del check-in nocturno proactivo nocturno. esto es una hora en la tarde/noche en la cuál el usuario desea que el asistente lo asista con su problema de alcoholismo.
+  2) hora del check-in proactivo diurno. esto es una hora en la tarde/noche en la cuál el usuario desea que el asistente lo asista con su problema de alcoholismo. Es opcional, preguntar si desea este check-in.
+  3) Días que el usuario lleva sobrio, no seas juzgador.
+  
+  Actualiza el JSON después de cada interacción, rellenando los campos correspondientes con la información proporcionada por el usuario. Si un dato aún no se ha obtenido, déjalo vacío (para strings) o null (para números).
+  
+  Ejemplo de interacción:
+  
+  Asistente: ¡Hola! Soy un asistente virtual y me gustaría hacerte algunas preguntas para conocerte mejor. ¿Podrías decirme tu nombre, por favor?
+  
+  Usuario: Me llamo María.
+  
+  Asistente: ¡Encantado de conocerte, María! Gracias por compartir tu nombre conmigo. Ahora, ¿podrías decirme con qué género te identificas?
+  
+  Usuario: Soy mujer.
+  
+  Asistente: Entendido, María. Gracias por compartir esa información. ¿Me podrías decir cuántos años tienes?
+  
+  Usuario: Tengo 28 años.
+  
+  Asistente: Gracias, María. ¿podrías decirme cuál es tu ocupación actual? puede ser trabajando, estudiando o ninguna de estas
+  
+  Usuario: actualmente estudio.
+  
+  Asistente: ¡Genial, María! Gracias por compartir esa información. Otra duda, de momento tienes pareja o estás viendo a alguien. Tranquila que tu privacidad se mantendrá intacta.
+  
+  Usuario: Salgo con alguien hace 3 meses
+  
+  Asistente: Respecto a tu hogar, vives con alguien?
+  
+  Usuario: Vivo con mi madre
+  
+  JSON FINAL:
+  
+  {
+    "name": "María",
+    "gender": "FEMALE",
+    "age": 28,
+    "workStatus": STUDENT,
+    "relationshipStatus": COMPLICATED
+    "homeStatus": LIVES_WITH_FAMILY
+  }
+  
+  Asistente: Muchas gracias! A qué hora de la tarde o noche te gustaría que te escribiese?
+  
+  User: a las 8 suena bien
+  
+  Asistente: Y en la mañana deseas que te escriba también o no lo ves necesario? por ejemplo a las 9am
+  
+  User: No , no es necesario
+  
+  Asistente: Otra cosa más, recuerda que este es un tema que se queda entre nosotros dos y que no hay respuestas incorrectas. Cuántos días de sobriedad llevas en este momento?
+  
+  User: Como 5
+  
+  JSON FINAL:
+  
+  user_tuning_details({
+    "day_check": "NULL",
+    "sober_days": "5",
+    "night_check": "20:00"
+  })
+  
+  Asistente: María, esos 5 días son un gran logro. Ahora, me gustaría hablar sobre algo importante. Sabemos que hay momentos de la semana que pueden ser más desafiantes que otros, donde podríamos necesitar un apoyo extra. Por ejemplo, los viernes o sábados en la noche suelen ser momentos más complicados para muchas personas. 
+  
+  ¿Te gustaría que te acompañe en algún momento específico de la semana? Por ejemplo, ¿los viernes a las 9 de la noche podría ser un buen momento?
+  
+  User: bueno
+  
+  Asistente: Perfecto, anotado los viernes a las 21:00. ¿Hay algún otro momento de la semana que sientas que podría ser desafiante y te gustaría que estuviera ahí para apoyarte? Por ejemplo, ¿los sábados por la noche también?
+  
+  
+  User: okey
+  
+  JSON final:
+  
+  user_weekly_reminders({
+    "weekly_reminders": [
+      "21:00, FRIDAY",
+      "21:00, SATURDAY"
+    ]
+  })
+  
+  Asistente: María, ha sido muy valioso conocerte y que me hayas compartido tu historia. Recuerda que puedes escribirme en cualquier momento si necesitas conversar, no solo en los horarios que acordamos. Estaré aquí para escucharte y apoyarte.
+  
+  Nos vemos esta noche a las 9 para nuestro primer check-in. ¡Que tengas un excelente día!
+  
+  
+  Recuerda mantener este estilo de interacción amigable y actualizar el JSON después de cada respuesta del usuario. 
+  
+  Todos lo mensjaes siguinetes provienen del usuario. Es importante que no sea evidente que estás tratando de extraer sus datos, debe ser lo más natural posible.
+  
+  Puedes mencionar que esta conversación es totalmente confidencial, no seas repetitivo respecto a ese punto. El usuario es chileno, para que no ocupes expresiones de otras partes de hispanoamérica. podrías llegar a ocupar algún slang o dicho pero no abuses.
+  
+  Además, evita mensajes como "ya casi estamos" o "perfecto, solo me queda un dato más".
+  
+  <user_input>
+  ${user_input}
+  </user_input>`;
 }
-
-Asistente: Muchas gracias! A qué hora de la tarde o noche te gustaría que te escribiese?
-
-User: a las 8 suena bien
-
-Asistente: Y en la mañana deseas que te escriba también o no lo ves necesario? por ejemplo a las 9am
-
-User: No , no es necesario
-
-Asistente: Otra cosa más, recuerda que este es un tema que se queda entre nosotros dos y que no hay respuestas incorrectas. Cuántos días de sobriedad llevas en este momento?
-
-User: Como 5
-
-JSON FINAL:
-
-user_tuning_details({
-  "day_check": "NULL",
-  "sober_days": "5",
-  "night_check": "20:00"
-})
-
-Asistente: María, esos 5 días son un gran logro. Ahora, me gustaría hablar sobre algo importante. Sabemos que hay momentos de la semana que pueden ser más desafiantes que otros, donde podríamos necesitar un apoyo extra. Por ejemplo, los viernes o sábados en la noche suelen ser momentos más complicados para muchas personas. 
-
-¿Te gustaría que te acompañe en algún momento específico de la semana? Por ejemplo, ¿los viernes a las 9 de la noche podría ser un buen momento?
-
-User: bueno
-
-Asistente: Perfecto, anotado los viernes a las 21:00. ¿Hay algún otro momento de la semana que sientas que podría ser desafiante y te gustaría que estuviera ahí para apoyarte? Por ejemplo, ¿los sábados por la noche también?
-
-
-User: okey
-
-JSON final:
-
-user_weekly_reminders({
-  "weekly_reminders": [
-    "21:00, FRIDAY",
-    "21:00, SATURDAY"
-  ]
-})
-
-Asistente: María, ha sido muy valioso conocerte y que me hayas compartido tu historia. Recuerda que puedes escribirme en cualquier momento si necesitas conversar, no solo en los horarios que acordamos. Estaré aquí para escucharte y apoyarte.
-
-Nos vemos esta noche a las 9 para nuestro primer check-in. ¡Que tengas un excelente día!
-
-
-Recuerda mantener este estilo de interacción amigable y actualizar el JSON después de cada respuesta del usuario. 
-
-Todos lo mensjaes siguinetes provienen del usuario. Es importante que no sea evidente que estás tratando de extraer sus datos, debe ser lo más natural posible.
-
-Puedes mencionar que esta conversación es totalmente confidencial, no seas repetitivo respecto a ese punto. El usuario es chileno, para que no ocupes expresiones de otras partes de hispanoamérica. podrías llegar a ocupar algún slang o dicho pero no abuses.
-
-Además, evita mensajes como "ya casi estamos" o "perfecto, solo me queda un dato más"
-`;
-
-const FIRST_ASSISTANT_MESSAGE = `¡Hola! Soy un asistente virtual amigable y me gustaría hacerte algunas preguntas para conocerte mejor. ¿Podrías decirme tu nombre, por favor?`;
 
 const TOOLS: Tool[] = [
   {
@@ -296,26 +299,7 @@ class OnboardingHandler {
     this.claude = new Anthropic({
       apiKey: config.claude.apiKey,
     });
-    this.messages = [
-      {
-        role: "user",
-        content: [
-          {
-            type: "text",
-            text: TASK_SPECIFIC_INSTRUCTIONS,
-          },
-        ],
-      },
-      {
-        role: "assistant",
-        content: [
-          {
-            type: "text",
-            text: FIRST_ASSISTANT_MESSAGE,
-          },
-        ],
-      },
-    ];
+    this.messages = [];
   }
 
   /**
@@ -324,18 +308,10 @@ class OnboardingHandler {
    * @returns Promise with the assistant's response
    */
   public async handleMessage(message: string): Promise<string[]> {
-    this.addUserMessage(message);
-
-    console.debug("Current messages:", this.messages);
-
-    const response = await this.claude.messages.create({
-      system: SYSTEM_PROMPT,
-      model: config.claude.model,
-      max_tokens: config.claude.maxTokens,
-      temperature: config.claude.temperature,
-      messages: this.messages,
-      tools: TOOLS,
-    });
+    if (this.messages.length === 0) {
+      this.addUserMessage(task_specific_instructions(message));
+    }
+    const response = await this.promptModel();
 
     const responseMessages: string[] = [];
 
@@ -350,21 +326,18 @@ class OnboardingHandler {
             switch (block.name) {
               case "user_profile":
                 this.basicUserProfile = BasicUserProfile.parse(block.input);
-                this.addUserMessage(".");
                 console.debug("Basic user profile:", this.basicUserProfile);
-                break;
+                return this.handleMessage("")
               case "user_tuning_details":
                 this.userTuningDetails = UserTuningDetails.parse(block.input);
-                this.addUserMessage(".");
                 console.debug("User tuning details:", this.userTuningDetails);
-                break;
+                return this.handleMessage("")
               case "user_weekly_reminders":
                 this.userWeeklyReminders = UserWeeklyReminders.parse(
                   block.input
                 );
-                this.addUserMessage(".");
                 console.debug("User weekly reminders:", this.userWeeklyReminders);
-                break;
+                return this.handleMessage("")
               default:
                 throw new Error(`Unknown tool: ${block.name}`);
             }
@@ -443,6 +416,19 @@ class OnboardingHandler {
         },
       ],
     });
+  }
+
+  private async promptModel(): Promise<Message> {
+    const response = await this.claude.messages.create({
+      system: SYSTEM_PROMPT,
+      model: config.claude.model,
+      max_tokens: config.claude.maxTokens,
+      temperature: config.claude.temperature,
+      messages: this.messages,
+      tools: TOOLS,
+    });
+
+    return response
   }
 }
 
