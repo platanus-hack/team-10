@@ -4,17 +4,21 @@ import IdleHandler from '../handlers/idleHandler';
 import type { Message } from 'whatsapp-web.js';
 import generateUserContext from '../utils/generateUserContext';
 import prisma from '../lib/prisma';
+import type WhatsAppBot from '../services/whatsappBot';
+
+import { Client as WhatsappClient } from 'whatsapp-web.js';
+
 
 const UserStates = require('../constants/userStates');
 const { getIDLEMessage, activeConversations} = require('../utils/helpers');
 
 class MessageController {
-    private client: Anthropic;
     private conversations: Map<string, OnboardingHandler | IdleHandler>;
+    private whatsappClient: WhatsappClient;
 
-    constructor(client) {
-        this.client = client;
+    constructor(whatsappClient: WhatsappClient) {
         this.conversations = new Map();
+        this.whatsappClient = whatsappClient;
     }
 
     async initializeBot() {
@@ -47,7 +51,7 @@ class MessageController {
                     const handler = this.conversations.get(msg.from);
                     const response = await handler.handleMessage(msg.body);
                     for (const message of response) {
-                        await msg.reply(message);
+                        await this.whatsappClient.sendMessage(msg.from, message);
                     }
                     return;
                 } else {
@@ -59,7 +63,7 @@ class MessageController {
                         console.log('Starting onboarding for user:', msg.from);
                         this.conversations.set(msg.from, new OnboardingHandler(msg.from));
                         for (const message of await this.conversations.get(msg.from).handleMessage(msg.body)) {
-                            await msg.reply(message);
+                            await this.whatsappClient.sendMessage(msg.from, message);
                         }
                         return;
                     } else {
@@ -70,7 +74,7 @@ class MessageController {
 
         } catch (error) {
             console.error('Error:', error);
-            await msg.reply('❌ Something went wrong. Please try again.');
+            await this.whatsappClient.sendMessage(msg.from, 'Lo siento, algo salió mal. Por favor, inténtalo de nuevo más tarde.');
         }
     }
 
