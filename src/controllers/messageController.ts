@@ -2,7 +2,6 @@ import type { PrismaClient } from '@prisma/client/extension';
 import { OnboardingHandler } from '../handlers/onboardingHandler';
 import type Anthropic from '@anthropic-ai/sdk';
 import IdleHandler from '../handlers/idleHandler';
-import type WhatsAppBot from '../services/whatsappBot';
 import type { Message } from 'whatsapp-web.js';
 
 const UserStates = require('../constants/userStates');
