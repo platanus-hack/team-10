@@ -327,7 +327,6 @@ export class OnboardingHandler {
       sobrietyStartDate,
       eveningCheckInTime,
       morningCheckInTime,
-      riskLevel,
     } = this.state.data;
 
     if (!name || !eveningCheckInTime) {
@@ -345,7 +344,6 @@ export class OnboardingHandler {
           homeStatus,
           triggers: triggers || [],
           copingStrategies: [],
-          riskLevel: riskLevel || 0,
           sobrietyStartDate,
           eveningCheckInTime,
           morningCheckInTime,
