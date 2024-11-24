@@ -15,6 +15,8 @@ const CONTACT_WHITELIST = [
   "56966600989@c.us",
   "56986885166@c.us",
   "56993203847@c.us",
+  "56942297244@c.us",
+  "56941757584@c.us"
 ];
 
 interface ConversationState {
@@ -102,7 +104,7 @@ class MessageController {
 
   async handleMessage(msg: Message) {
     try {
-      if (!CONTACT_WHITELIST.includes(msg.from)) {
+      if (!CONTACT_hHITELIST.includes(msg.from)) {
         console.log("Unauthorized user:", msg.from);
         return;
       }
