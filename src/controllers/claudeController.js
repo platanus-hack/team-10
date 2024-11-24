@@ -13,12 +13,12 @@ class ClaudeController {
      * @param {Object} res - Express response object.
      */
     // sendPrompt is a human message to send to Claude
-    async sendPrompt(human_msg) {
+    async sendPrompt(msg) {
         if (!prompt) {
             return res.status(400).json({ error: "Prompt is required" });
         }
         try {
-            const response = await this.claudeService.sendPrompt(human_msg);
+            const response = await this.claudeService.sendPrompt(msg.body);
             res.status(200).json({ response });
         } catch (error) {
             console.error(error);
