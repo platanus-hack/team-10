@@ -1,0 +1,88 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  NON_BINARY
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+enum WorkStatus {
+  EMPLOYED
+  UNEMPLOYED
+  STUDENT
+  RETIRED
+  OTHER
+}
+
+enum RelationshipStatus {
+  SINGLE
+  MARRIED
+  DIVORCED
+  WIDOWED
+  IN_RELATIONSHIP
+  COMPLICATED
+  OTHER
+}
+
+enum HomeStatus {
+  LIVES_ALONE
+  LIVES_WITH_FAMILY
+  LIVES_WITH_ROOMMATES
+  HOMELESS
+  OTHER
+}
+
+model User {
+  id            String    @id @default(uuid())
+  phoneNumber   String    @unique // WhatsApp phone ID
+  name          String?
+  gender        Gender?
+  age           Int?
+  workStatus    WorkStatus?
+  relationshipStatus RelationshipStatus?
+  homeStatus    HomeStatus?
+  sobrietyStartDate        DateTime?
+
+  // General tracking
+  lastInteraction DateTime @default(now())
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Check-ins
+  eveningCheckInTime DateTime @db.Timetz(0)
+  morningCheckInTime DateTime? @db.Timetz(0)
+
+  // Cues
+  timeTriggers        TimeTrigger[]
+
+  @@index([phoneNumber])
+}
+
+model TimeTrigger {
+  id        String    @id @default(uuid())
+  user      User      @relation(fields: [userId], references: [id])
+  userId    String
+  day       DAY
+  time      DateTime  @db.Timetz(0)
+}
+
+enum DAY {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+

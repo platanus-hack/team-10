@@ -39,7 +39,7 @@ SoBuddy aborda una necesidad crítica en Chile: el acceso a apoyo continuo en la
 
 ## 🚀 Pruébalo
 
-Envía un mensaje a SoBuddy: [www.sobuddy.org](https://www.sobuddy.org/)
+Envía un mensaje a SoBuddy: [www.sobuddy.org](https://www.sobuddy.org)
 
 ---
 
