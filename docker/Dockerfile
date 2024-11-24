@@ -49,9 +49,6 @@ COPY . .
 # Install dependencies
 RUN bun install
 
-# Generate Prisma client
-RUN bunx prisma generate
-
 # Set environment variables
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
