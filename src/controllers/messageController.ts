@@ -214,6 +214,51 @@ class MessageController {
       "Lo siento, algo salió mal. Por favor, inténtalo de nuevo más tarde."
     );
   }
+  }
+
+  private async checkHolidays(): Promise<void> {
+    const today = new Date();
+    const twoDaysFromNow = new Date(today);
+    twoDaysFromNow.setDate(today.getDate() + 2);
+    
+    // Format dates to MM-DD for comparison
+    const formatDate = (date: Date) => {
+        return `${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    };
+    
+    const todayFormatted = formatDate(today);
+    const twoDaysFormatted = formatDate(twoDaysFromNow);
+    
+    // Check for upcoming holidays
+    const upcomingHolidays = holidays.filter(holiday => 
+        holiday.date === todayFormatted || holiday.date === twoDaysFormatted
+    );
+    
+    if (upcomingHolidays.length > 0) {
+        // Get all active users
+        const activeUsers = await prisma.user.findMany({
+            where: { isActive: true }
+        });
+        
+        // Send holiday check-ins
+        for (const user of activeUsers) {
+            if (this.activeConversations.has(user.phoneNumber)) {
+                continue;
+            }
+            for (const holiday of upcomingHolidays) {
+                const handler = new HolidayHandler(
+                    user.id,
+                    holiday
+                );
+                
+                const messages = await handler.handleMessage(null);
+                for (const message of messages) {
+                    await this.whatsappClient.sendMessage(user.phoneNumber, message);
+                }
+            }
+        }
+    }
+}
 }}
 
 export default MessageController;
