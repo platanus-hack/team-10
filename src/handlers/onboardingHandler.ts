@@ -8,18 +8,21 @@ const anthropic = new Anthropic({
 
 const prisma = new PrismaClient();
 
+export type InterpretableStep = 
+| "NAME"
+| "GENDER"
+| "AGE"
+| "WORK_STATUS"
+| "HOME_STATUS"
+| "TRIGGERS"
+| "EVENING_CHECKIN"
+| "MORNING_CHECKIN"
+| "RECOVERY_DATE";
+
 export type OnboardingStep =
   | "WELCOME"
-  | "NAME"
-  | "GENDER"
-  | "AGE"
-  | "WORK_STATUS"
-  | "HOME_STATUS"
+  | InterpretableStep
   | "PROBLEM_HISTORY"
-  | "TRIGGERS"
-  | "EVENING_CHECKIN"
-  | "MORNING_CHECKIN"
-  | "RECOVERY_DATE"
   | "COMPLETED";
 
 interface OnboardingState {
@@ -27,6 +30,156 @@ interface OnboardingState {
   data: Partial<User>;
   retryCount: number;
 }
+
+interface InterpretationContext {
+  step: InterpretableStep;
+  expectedFormat: string;
+  examples: Array<{
+    input: string;
+    output: string;
+  }>;
+}
+
+const interpretationContexts: Record<InterpretableStep, InterpretationContext> = {
+  NAME: {
+    step: "NAME",
+    expectedFormat: '{ "name": string, "confidence": "high" | "low" }',
+    examples: [
+      {
+        input: "Me llamo Juan Carlos",
+        output: '{ "name": "Juan Carlos", "confidence": "high" }'
+      },
+      {
+        input: "Pueden decirme Mari",
+        output: '{ "name": "Mari", "confidence": "high" }'
+      }
+    ]
+  },
+  GENDER: {
+    step: "GENDER",
+    expectedFormat: '{ "gender": "MALE" | "FEMALE" | "NON_BINARY" | "OTHER" | "PREFER_NOT_TO_SAY", "confidence": "high" | "low" }',
+    examples: [
+      {
+        input: "Soy hombre",
+        output: '{ "gender": "MALE", "confidence": "high" }'
+      },
+      {
+        input: "Femenino",
+        output: '{ "gender": "FEMALE", "confidence": "high" }'
+      },
+      {
+        input: "No binario",
+        output: '{ "gender": "NON_BINARY", "confidence": "high" }'
+      }
+    ]
+  },
+  AGE: {
+    step: "AGE",
+    expectedFormat: '{ "age": number, "confidence": "high" | "low" }',
+    examples: [
+      {
+        input: "Tengo 25 años",
+        output: '{ "age": 25, "confidence": "high" }'
+      },
+      {
+        input: "32",
+        output: '{ "age": 32, "confidence": "high" }'
+      }
+    ]
+  },
+  WORK_STATUS: {
+    step: "WORK_STATUS",
+    expectedFormat: '{ "workStatus": "EMPLOYED" | "UNEMPLOYED" | "STUDENT" | "RETIRED" | "OTHER", "confidence": "high" | "low" }',
+    examples: [
+      {
+        input: "Trabajo como ingeniero",
+        output: '{ "workStatus": "EMPLOYED", "confidence": "high" }'
+      },
+      {
+        input: "Estoy estudiando en la universidad",
+        output: '{ "workStatus": "STUDENT", "confidence": "high" }'
+      },
+      {
+        input: "Ahora mismo no trabajo",
+        output: '{ "workStatus": "UNEMPLOYED", "confidence": "high" }'
+      }
+    ]
+  },
+  HOME_STATUS: {
+    step: "HOME_STATUS",
+    expectedFormat: '{ "homeStatus": "LIVES_ALONE" | "LIVES_WITH_FAMILY" | "LIVES_WITH_ROOMMATES" | "HOMELESS" | "OTHER", "confidence": "high" | "low" }',
+    examples: [
+      {
+        input: "Vivo con mis padres",
+        output: '{ "homeStatus": "LIVES_WITH_FAMILY", "confidence": "high" }'
+      },
+      {
+        input: "Tengo un apartamento solo",
+        output: '{ "homeStatus": "LIVES_ALONE", "confidence": "high" }'
+      },
+      {
+        input: "Comparto piso con amigos",
+        output: '{ "homeStatus": "LIVES_WITH_ROOMMATES", "confidence": "high" }'
+      }
+    ]
+  },
+  TRIGGERS: {
+    step: "TRIGGERS",
+    expectedFormat: '{ "triggers": string[], "confidence": "high" | "low" }',
+    examples: [
+      {
+        input: "Me cuesta más los fines de semana y cuando estoy estresado",
+        output: '{ "triggers": ["fines de semana", "situaciones de estrés"], "confidence": "high" }'
+      },
+      {
+        input: "En fiestas y reuniones sociales",
+        output: '{ "triggers": ["fiestas", "reuniones sociales"], "confidence": "high" }'
+      }
+    ]
+  },
+  EVENING_CHECKIN: {
+    step: "EVENING_CHECKIN",
+    expectedFormat: '{ "time": string, "confidence": "high" | "low" }',
+    examples: [
+      {
+        input: "9 de la noche",
+        output: '{ "time": "21:00", "confidence": "high" }'
+      },
+      {
+        input: "a las 10pm",
+        output: '{ "time": "22:00", "confidence": "high" }'
+      }
+    ]
+  },
+  MORNING_CHECKIN: {
+    step: "MORNING_CHECKIN",
+    expectedFormat: '{ "time": string, "confidence": "high" | "low" }',
+    examples: [
+      {
+        input: "8 de la mañana",
+        output: '{ "time": "08:00", "confidence": "high" }'
+      },
+      {
+        input: "no quiero check-in en la mañana",
+        output: '{ "time": null, "confidence": "high" }'
+      }
+    ]
+  },
+  RECOVERY_DATE: {
+    step: "RECOVERY_DATE",
+    expectedFormat: '{ "date": string, "isToday": boolean, "confidence": "high" | "low" }',
+    examples: [
+      {
+        input: "quiero empezar hoy mismo",
+        output: '{ "date": null, "isToday": true, "confidence": "high" }'
+      },
+      {
+        input: "1 de abril",
+        output: '{ "date": "2024-04-01", "isToday": false, "confidence": "high" }'
+      }
+    ]
+  }
+};
 
 export class OnboardingHandler {
   private state: OnboardingState = {
@@ -41,7 +194,6 @@ export class OnboardingHandler {
     if (!phoneNumber) {
       throw new Error("Phone number is required for onboarding");
     }
-    
   }
 
   public get currentStep(): OnboardingStep {
@@ -160,9 +312,7 @@ export class OnboardingHandler {
 
   private async createUserProfile(): Promise<void> {
     if (this.state.step !== "COMPLETED") {
-      throw new Error(
-        "Cannot create user profile before onboarding is completed"
-      );
+      throw new Error("Cannot create user profile before onboarding is completed");
     }
 
     const {
@@ -208,24 +358,35 @@ export class OnboardingHandler {
 
   private async interpretWithClaude(
     message: string,
-    context: string
+    step: OnboardingStep
   ): Promise<any> {
     try {
+      const context = interpretationContexts[step];
+      if (!context) {
+        return { confidence: "low" };
+      }
+
       const prompt = `
-        Context: ${context}
+        Context: Interpreting user message for ${context.step}
+        Expected JSON format: ${context.expectedFormat}
+        
+        Examples:
+        ${context.examples.map(ex => `Input: "${ex.input}"
+        Output: ${ex.output}`).join('\n\n')}
+        
         User message: "${message}"
         
-        Extract the relevant information from the user's message and return it in a structured JSON format.
+        Extract the relevant information from the user's message and return it in the exact JSON format shown above.
         If you're unsure about the interpretation, return { "confidence": "low" } instead of guessing.
         Only return the JSON, no other text.
-      `;
+        
+        Output:`;
 
       const response = await anthropic.messages.create({
         model: "claude-3-haiku-20240307",
         max_tokens: 300,
         messages: [{ role: "user", content: prompt }],
-        system:
-          'You are a helpful assistant that extracts structured data from user messages. Only respond with valid JSON. Be conservative in your interpretations - if you\'re not confident, return { "confidence": "low" }.',
+        system: 'You are a helpful assistant that extracts structured data from user messages. Only respond with valid JSON matching the exact format specified. Be conservative in your interpretations - if you\'re not confident, return { "confidence": "low" }.',
         temperature: 0,
       });
 
@@ -258,10 +419,7 @@ export class OnboardingHandler {
             return this.getPromptForStep("NAME");
           }
           
-          interpretedData = await this.interpretWithClaude(
-            message,
-            "Extract the user's name"
-          );
+          interpretedData = await this.interpretWithClaude(message, "NAME");
           if (interpretedData?.name && interpretedData.confidence === "high") {
             this.state.data.name = interpretedData.name;
             this.state.step = "GENDER";
@@ -280,11 +438,8 @@ export class OnboardingHandler {
             return this.getPromptForStep("GENDER");
           }
 
-          interpretedData = await this.interpretWithClaude(
-            message,
-            "Classify gender into: MALE, FEMALE, NON_BINARY, OTHER, PREFER_NOT_TO_SAY"
-          );
-          if (interpretedData?.gender) {
+          interpretedData = await this.interpretWithClaude(message, "GENDER");
+          if (interpretedData?.gender && interpretedData.confidence === "high") {
             this.state.data.gender = interpretedData.gender;
             this.state.step = "AGE";
             return this.getPromptForStep("AGE");
@@ -299,10 +454,7 @@ export class OnboardingHandler {
             return this.getPromptForStep("AGE");
           }
 
-          interpretedData = await this.interpretWithClaude(
-            message,
-            "Extract age as a number between 18 and 100"
-          );
+          interpretedData = await this.interpretWithClaude(message, "AGE");
           if (interpretedData?.age && typeof interpretedData.age === "number") {
             this.state.data.age = interpretedData.age;
             this.state.step = "WORK_STATUS";
@@ -317,11 +469,8 @@ export class OnboardingHandler {
             return this.getPromptForStep("WORK_STATUS");
           }
 
-          interpretedData = await this.interpretWithClaude(
-            message,
-            "Classify work status into: EMPLOYED, UNEMPLOYED, STUDENT, RETIRED, OTHER"
-          );
-          if (interpretedData?.workStatus) {
+          interpretedData = await this.interpretWithClaude(message, "WORK_STATUS");
+          if (interpretedData?.workStatus && interpretedData.confidence === "high") {
             this.state.data.workStatus = interpretedData.workStatus;
             this.state.step = "HOME_STATUS";
             return this.getPromptForStep("HOME_STATUS");
@@ -335,11 +484,8 @@ export class OnboardingHandler {
             return this.getPromptForStep("HOME_STATUS");
           }
 
-          interpretedData = await this.interpretWithClaude(
-            message,
-            "Classify living situation into: LIVES_ALONE, LIVES_WITH_FAMILY, LIVES_WITH_ROOMMATES, HOMELESS, OTHER"
-          );
-          if (interpretedData?.homeStatus) {
+          interpretedData = await this.interpretWithClaude(message, "HOME_STATUS");
+          if (interpretedData?.homeStatus && interpretedData.confidence === "high") {
             this.state.data.homeStatus = interpretedData.homeStatus;
             this.state.step = "PROBLEM_HISTORY";
             return this.getPromptForStep("PROBLEM_HISTORY");
@@ -353,6 +499,7 @@ export class OnboardingHandler {
             return this.getPromptForStep("PROBLEM_HISTORY");
           }
 
+          // For problem history, we don't try to interpret it, we just store it and move on
           this.state.step = "TRIGGERS";
           return this.getPromptForStep("TRIGGERS");
 
@@ -361,10 +508,7 @@ export class OnboardingHandler {
             return this.getPromptForStep("TRIGGERS");
           }
 
-          interpretedData = await this.interpretWithClaude(
-            message,
-            "Extract potential trigger situations or times. Return { triggers: string[], confidence: 'high'|'low' }"
-          );
+          interpretedData = await this.interpretWithClaude(message, "TRIGGERS");
           if (interpretedData?.triggers && interpretedData.confidence === "high") {
             this.state.data.triggers = interpretedData.triggers;
             this.state.step = "EVENING_CHECKIN";
@@ -373,9 +517,9 @@ export class OnboardingHandler {
           return this.handleRetry(
             "Para ayudarte mejor, necesito entender en qué momentos necesitas más apoyo.\n" +
               "¿Podrías mencionar situaciones específicas? Por ejemplo:\n" +
-              '- "Los viernes por la noche"\n' +
+              `- "Los viernes por la noche"\n` +
               `- "Cuando estoy estresad${this.getGenderEnding()}"\n` +
-              '- "En reuniones sociales"'
+              `- "En reuniones sociales"`
           );
 
         case "EVENING_CHECKIN":
@@ -383,10 +527,7 @@ export class OnboardingHandler {
             return this.getPromptForStep("EVENING_CHECKIN");
           }
 
-          interpretedData = await this.interpretWithClaude(
-            message,
-            "Extract evening time in 24-hour format. Return { time: string, confidence: 'high'|'low' }"
-          );
+          interpretedData = await this.interpretWithClaude(message, "EVENING_CHECKIN");
           if (interpretedData?.time && interpretedData.confidence === "high") {
             this.state.data.eveningCheckInTime = interpretedData.time;
             this.state.step = "MORNING_CHECKIN";
@@ -404,17 +545,11 @@ export class OnboardingHandler {
             return this.getPromptForStep("MORNING_CHECKIN");
           }
 
-          if (message.toLowerCase().includes("no")) {
-            this.state.data.morningCheckInTime = null;
-            this.state.step = "RECOVERY_DATE";
-            return this.getPromptForStep("RECOVERY_DATE");
-          }
-
-          interpretedData = await this.interpretWithClaude(
-            message,
-            "Extract morning time in 24-hour format. Return { time: string, confidence: 'high'|'low' }"
-          );
-          if (interpretedData?.time && interpretedData.confidence === "high") {
+          interpretedData = await this.interpretWithClaude(message, "MORNING_CHECKIN");
+          if (
+            (message.toLowerCase().includes("no") && interpretedData.confidence === "high") ||
+            (interpretedData?.time && interpretedData.confidence === "high")
+          ) {
             this.state.data.morningCheckInTime = interpretedData.time;
             this.state.step = "RECOVERY_DATE";
             return this.getPromptForStep("RECOVERY_DATE");
@@ -430,10 +565,7 @@ export class OnboardingHandler {
             return this.getPromptForStep("RECOVERY_DATE");
           }
 
-          interpretedData = await this.interpretWithClaude(
-            message,
-            "Extract date or 'today'. Return { date: string, isToday: boolean, confidence: 'high'|'low' }"
-          );
+          interpretedData = await this.interpretWithClaude(message, "RECOVERY_DATE");
           if (interpretedData?.confidence === "high") {
             this.state.data.sobrietyStartDate = interpretedData.isToday
               ? new Date()
