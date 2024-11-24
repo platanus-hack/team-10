@@ -47,33 +47,21 @@ export class CheckInHandler {
     });
   }
 
-  private async generateResponse(message: string): Promise<string[]> {
-    const userContext = generateUserContext(this.user);
+  private buildSystemPrompt(): string {
     const timeOfDay = new Date().getHours() < 12 ? 'mañana' : 
                      new Date().getHours() < 18 ? 'tarde' : 
                      'noche';
-  
+    
     const sobrietyDays = this.user?.sobrietyStartDate 
       ? Math.floor((new Date().getTime() - this.user.sobrietyStartDate.getTime()) / (1000 * 60 * 60 * 24))
       : 0;
 
-    const prompt = `
-   Eres un asistente de check-in diario para personas en recuperación del alcohol. Tu rol es guiar una breve conversación de check-in ${this.state.type === 'MORNING' ? 'matutino' : 'vespertino'}.
+    return `
+    Eres un asistente de check-in diario para personas en recuperación del alcohol. Tu rol es guiar una breve conversación de check-in ${this.state.type === 'MORNING' ? 'matutino' : 'vespertino'}.
 
     ESTRUCTURA DEL CHECK-IN:
     Etapa ${this.state.step + 1}/3:
-    ${this.state.step === 0 ? `
-    - Saludo inicial cálido y breve
-    - Pregunta sobre su estado actual/planes para el día
-    ` : this.state.step === 1 ? `
-    - Validación de su respuesta
-    - Exploración gentil de cualquier preocupación
-    - Ofrecer apoyo específico si es necesario
-    ` : `
-    - Cierre positivo
-    - Recordatorio de recursos disponibles
-    - Confirmación de próximo check-in
-    `}
+    ${this.getStepInstructions()}
 
     CONTEXTO ACTUAL:
     - Momento: Check-in de ${this.state.type.toLowerCase()}
@@ -81,10 +69,7 @@ export class CheckInHandler {
     - Hora del día: ${timeOfDay}
 
     INFORMACIÓN DEL USUARIO:
-    ${userContext}
-
-    MENSAJE DEL USUARIO:
-    "${message}"
+    ${generateUserContext(this.user)}
 
     GUÍAS DE RESPUESTA:
     1. Mantén respuestas breves (máximo 2-3 líneas por mensaje)
@@ -95,33 +80,68 @@ export class CheckInHandler {
     ${this.state.step >= 2 ? '6. Incluye un mensaje de cierre positivo y esperanzador' : ''}
 
     RECURSOS DISPONIBLES:
+    ${this.getAvailableResources()}`;
+  }
+
+  private getStepInstructions(): string {
+    const steps = {
+      0: `
+    - Saludo inicial cálido y breve
+    - Pregunta sobre su estado actual/planes para el día`,
+      1: `
+    - Validación de su respuesta
+    - Exploración gentil de cualquier preocupación
+    - Ofrecer apoyo específico si es necesario`,
+      2: `
+    - Cierre positivo
+    - Recordatorio de recursos disponibles
+    - Confirmación de próximo check-in`
+    };
+    return steps[this.state.step as keyof typeof steps];
+  }
+
+  private getAvailableResources(): string {
+    return `
     - SENDA (1431): Línea de ayuda 24/7
     - HALT: Revisar Hambre, Angustia, Soledad, Tensión
     - Ejercicios de respiración
-    - Técnicas de manejo de impulsos
+    - Técnicas de manejo de impulsos`;
+  }
 
-    Responde como un amigo comprensivo que acompaña su proceso de recuperación día a día.`;
+  private async generateResponse(message: string): Promise<string[]> {
+    const prompt = this.buildSystemPrompt();
 
     try {
       const response = await this.anthropic.messages.create({
         model: "claude-3-haiku-20240307",
         max_tokens: 250,
-        messages: [{ role: "user", content: prompt }],
+        messages: [
+          { role: "user", content: prompt },
+          { role: "user", content: message }
+        ],
         temperature: 0.7,
       });
 
       const content = response.content.find((c) => c.type === "text")?.text;
-      return content ? content.split('\n').filter(line => line.trim()) : [
-        "Te escucho y estoy aquí para apoyarte.",
-        `Que tengas una buena ${timeOfDay}. Recuerda que no estás solo/a en este proceso.`
-      ];
+      return this.formatResponse(content);
     } catch (error) {
       console.error("Error generating response:", error);
-      return [
-        "Te escucho y estoy aquí para apoyarte.",
-        `Que tengas una buena ${timeOfDay}. Recuerda que no estás solo/a en este proceso.`
-      ];
+      return this.getFallbackResponse();
     }
+  }
+
+  private formatResponse(content: string | undefined): string[] {
+    return content ? content.split('\n').filter(line => line.trim()) : this.getFallbackResponse();
+  }
+
+  private getFallbackResponse(): string[] {
+    const timeOfDay = new Date().getHours() < 12 ? 'mañana' : 
+                     new Date().getHours() < 18 ? 'tarde' : 
+                     'noche';
+    return [
+      "Te escucho y estoy aquí para apoyarte.",
+      `Que tengas una buena ${timeOfDay}. Recuerda que no estás solo/a en este proceso.`
+    ];
   }
 
   public async handleMessage(message: string): Promise<string[]> {

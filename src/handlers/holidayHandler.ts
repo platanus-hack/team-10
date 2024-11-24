@@ -3,22 +3,23 @@ import prisma from '../lib/prisma';
 import Anthropic from '@anthropic-ai/sdk';
 import config from '../config/config';
 import generateUserContext from '../utils/generateUserContext';
+import { PrismaClient } from '@prisma/client';
 
 export class HolidayHandler {
-    private holiday: Holiday;
     private user: any;
     private anthropic: Anthropic;
+    private prisma: PrismaClient;
 
-    constructor(userId: string, holiday: Holiday) {
+    constructor(private userId: string, private holiday: Holiday) {
+        this.prisma = new PrismaClient();
         this.anthropic = new Anthropic({
             apiKey: config.claude.apiKey,
         });
-        this.user = this.initUser(userId);
-        this.holiday = holiday;
+        this.user = null;
     }
 
-    private async initUser(userId: string) {
-        return await prisma.user.findUnique({ where: { id: userId } });
+    private async loadUser() {
+        this.user = await this.prisma.user.findUnique({ where: { id: this.userId } });
     }
 
     private async generateResponse(message: string | null): Promise<string[]> {
@@ -76,6 +77,10 @@ export class HolidayHandler {
 
     async handleMessage(message: string | null): Promise<string[]> {
         try {
+            if (!this.user) {
+                await this.loadUser();
+            }
+
             return await this.generateResponse(message);
         } catch (error) {
             console.error("Error in handleMessage:", error);
