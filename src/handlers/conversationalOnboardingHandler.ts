@@ -272,7 +272,7 @@ const UserTuningDetails = z.object({
   day_check: z
     .string()
     .regex(/^\d{2}:\d{2}$/)
-    .optional(),
+    .nullable(),
   sober_days: z.number().int().positive(),
 });
 
@@ -323,57 +323,57 @@ class OnboardingHandler {
       switch (block.type) {
         case "text":
           this.addAssistantMessage(block.text);
-          responseMessages.push(block.text);
+          responseMessages.push(...block.text.split("\n"));
           break;
         case "tool_use":
           switch (block.name) {
             case "user_profile":
+              console.debug("Inputted user profile:", block.input);
               const basicUserProfileResult = BasicUserProfile.safeParse(
                 block.input
               );
               if (basicUserProfileResult.success) {
                 this.basicUserProfile = basicUserProfileResult.data;
                 this.addToolResult(block, "success");
-                console.debug("Basic user profile:", this.basicUserProfile);
               } else {
-                this.addToolResult(block, "error");
+                this.addToolResult(block, `error (please retry): ${basicUserProfileResult.error.errors}`);
                 console.error(
-                  "Error parsing basic user profile:",
+                  "Error parsing basic user profile: ",
                   basicUserProfileResult.error.errors
                 );
               }
               return this.handleMessage(undefined);
             case "user_tuning_details":
+              console.debug("Inputted user tuning details:", block.input);
               const userTuningDetailsResult = UserTuningDetails.safeParse(
                 block.input
               );
               if (userTuningDetailsResult.success) {
                 this.userTuningDetails = userTuningDetailsResult.data;
                 this.addToolResult(block, "success");
-                console.debug("User tuning details:", this.userTuningDetails);
               } else {
-                this.addToolResult(block, "error");
+                this.addToolResult(block, `error (please retry): ${userTuningDetailsResult.error.errors}`);
                 console.error(
-                  "Error parsing user tuning details:",
+                  "Error parsing user tuning details: ",
                   userTuningDetailsResult.error.errors
                 );
               }
               return this.handleMessage(undefined);
             case "user_weekly_reminders":
+              console.debug(
+                "Inputted user weekly reminders:",
+                block.input
+              );
               const userWeeklyRemindersResult = UserWeeklyReminders.safeParse(
                 block.input
               );
               if (userWeeklyRemindersResult.success) {
                 this.userWeeklyReminders = userWeeklyRemindersResult.data;
                 this.addToolResult(block, "success");
-                console.debug(
-                  "User weekly reminders:",
-                  this.userWeeklyReminders
-                );
               } else {
-                this.addToolResult(block, "error");
+                this.addToolResult(block, `error (please retry): ${userWeeklyRemindersResult.error.errors}`);
                 console.error(
-                  "Error parsing user weekly reminders:",
+                  "Error parsing user weekly reminders: ",
                   userWeeklyRemindersResult.error.errors
                 );
               }
