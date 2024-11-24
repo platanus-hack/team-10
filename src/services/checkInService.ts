@@ -60,8 +60,7 @@ export class CheckInService {
             where: {
                 isActive: true,
                 morningCheckInTime: {
-                    not: null,
-                    equals: new Date(`1970-01-01T${currentTime.toTimeString().split(' ')[0]}Z`)
+                    equals: new Date(`1970-01-01T${currentTime.toTimeString().split(' ')[0]}Z`),
                 }
             }
         });
@@ -78,7 +77,6 @@ export class CheckInService {
             where: {
                 isActive: true,
                 eveningCheckInTime: {
-                  not: null,
                   equals: new Date(`1970-01-01T${currentTime.toTimeString().split(' ')[0]}Z`)
               }
             }

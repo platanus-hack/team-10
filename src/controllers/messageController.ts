@@ -8,6 +8,7 @@ import _ from "lodash";
 import ClaudeHandler from "../handlers/claudeHandler";
 import { HolidayService } from "../services/holidayService";
 import { HolidayHandler } from "../handlers/holidayHandler";
+import { holidays } from "../data/holidays.ts";
 
 const CONVERSATION_TIMEOUT = 45 * 60 * 1000; // 45 minutes
 const MESSAGE_DELAY = 700;
