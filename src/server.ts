@@ -1,5 +1,5 @@
 import prisma from './lib/prisma';
-const WhatsAppBot = require('./services/whatsappBot');
+import WhatsAppBot from './services/whatsappBot';
 const app = require('./app');
 
 async function main() {

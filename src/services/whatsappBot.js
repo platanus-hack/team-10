@@ -1,7 +1,6 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
-const MessageController = require('../controllers/messageController');
-const StateHandler = require('../handlers/stateHandler');
+import MessageController from '../controllers/messageController';
 
 class WhatsAppBot {
     constructor() {
@@ -92,4 +91,4 @@ class WhatsAppBot {
     }
 }
 
-module.exports = WhatsAppBot; 
+export default WhatsAppBot;

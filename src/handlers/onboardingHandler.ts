@@ -1,4 +1,4 @@
-import { Anthropic } from "@anthropic-ai/sdk";
+import Anthropic from '@anthropic-ai/sdk';
 import { PrismaClient, type User } from "@prisma/client";
 import config from "../config/config";
 
