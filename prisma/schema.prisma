@@ -43,7 +43,7 @@ enum HomeStatus {
 
 model User {
   id            String    @id @default(uuid())
-  phoneNumber   String    @unique // WhatsApp phone number
+  phoneNumber   String    @unique // WhatsApp phone ID
   name          String?
   gender        Gender?
   age           Int?
@@ -61,7 +61,6 @@ model User {
   // Recovery tracking
   triggers           String[]
   copingStrategies   String[]
-  riskLevel          Int       @default(0)
 
   // Check-ins
   eveningCheckInTime DateTime @db.Timetz(0)

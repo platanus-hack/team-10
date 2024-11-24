@@ -142,12 +142,12 @@ const interpretationContexts: Record<InterpretableStep, InterpretationContext> =
     expectedFormat: '{ "time": string, "confidence": "high" | "low" }',
     examples: [
       {
-        input: "9 de la noche",
-        output: '{ "time": "21:00", "confidence": "high" }'
+        input: "9:30 de la noche",
+        output: '{ "time": "2024-11-24T21:30:00-0400", "confidence": "high" }'
       },
       {
         input: "a las 10pm",
-        output: '{ "time": "22:00", "confidence": "high" }'
+        output: '{ "time": "2024-11-24T22:00:00-0400", "confidence": "high" }'
       }
     ]
   },
@@ -157,7 +157,7 @@ const interpretationContexts: Record<InterpretableStep, InterpretationContext> =
     examples: [
       {
         input: "8 de la mañana",
-        output: '{ "time": "08:00", "confidence": "high" }'
+        output: '{ "time": "2024-11-25T08:00:00-0400", "confidence": "high" }'
       },
       {
         input: "no quiero check-in en la mañana",
@@ -529,7 +529,7 @@ export class OnboardingHandler {
 
           interpretedData = await this.interpretWithClaude(message, "EVENING_CHECKIN");
           if (interpretedData?.time && interpretedData.confidence === "high") {
-            this.state.data.eveningCheckInTime = interpretedData.time;
+            this.state.data.eveningCheckInTime = new Date(interpretedData.time);
             this.state.step = "MORNING_CHECKIN";
             return this.getPromptForStep("MORNING_CHECKIN").map((msg) =>
               msg.replace("${eveningTime}", interpretedData.time)
