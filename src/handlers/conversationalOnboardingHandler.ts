@@ -3,6 +3,7 @@ import type {
   Message,
   MessageParam,
   Tool,
+  ToolUseBlock,
 } from "@anthropic-ai/sdk/src/resources/messages.js";
 import config from "../config/config";
 import Anthropic from "@anthropic-ai/sdk";
@@ -307,10 +308,13 @@ class OnboardingHandler {
    * @param message - The message text from the user
    * @returns Promise with the assistant's response
    */
-  public async handleMessage(message: string): Promise<string[]> {
-    if (this.messages.length === 0) {
+  public async handleMessage(message: string | undefined): Promise<string[]> {
+    if (this.messages.length === 0 && message !== undefined) {
       this.addUserMessage(task_specific_instructions(message));
+    } else if (message) {
+      this.addUserMessage(message);
     }
+
     const response = await this.promptModel();
 
     const responseMessages: string[] = [];
@@ -322,37 +326,70 @@ class OnboardingHandler {
           responseMessages.push(block.text);
           break;
         case "tool_use":
-          try {
-            switch (block.name) {
-              case "user_profile":
-                this.basicUserProfile = BasicUserProfile.parse(block.input);
+          switch (block.name) {
+            case "user_profile":
+              const basicUserProfileResult = BasicUserProfile.safeParse(
+                block.input
+              );
+              if (basicUserProfileResult.success) {
+                this.basicUserProfile = basicUserProfileResult.data;
+                this.addToolResult(block, "success");
                 console.debug("Basic user profile:", this.basicUserProfile);
-                return this.handleMessage("")
-              case "user_tuning_details":
-                this.userTuningDetails = UserTuningDetails.parse(block.input);
-                console.debug("User tuning details:", this.userTuningDetails);
-                return this.handleMessage("")
-              case "user_weekly_reminders":
-                this.userWeeklyReminders = UserWeeklyReminders.parse(
-                  block.input
+              } else {
+                this.addToolResult(block, "error");
+                console.error(
+                  "Error parsing basic user profile:",
+                  basicUserProfileResult.error.errors
                 );
-                console.debug("User weekly reminders:", this.userWeeklyReminders);
-                return this.handleMessage("")
-              default:
-                throw new Error(`Unknown tool: ${block.name}`);
-            }
-          } catch (error) {
-            if (error instanceof z.ZodError) {
-              // TODO: Graceful retries
-              console.error("Error parsing tool input:", error.errors);
-            }
+              }
+              return this.handleMessage(undefined);
+            case "user_tuning_details":
+              const userTuningDetailsResult = UserTuningDetails.safeParse(
+                block.input
+              );
+              if (userTuningDetailsResult.success) {
+                this.userTuningDetails = userTuningDetailsResult.data;
+                this.addToolResult(block, "success");
+                console.debug("User tuning details:", this.userTuningDetails);
+              } else {
+                this.addToolResult(block, "error");
+                console.error(
+                  "Error parsing user tuning details:",
+                  userTuningDetailsResult.error.errors
+                );
+              }
+              return this.handleMessage(undefined);
+            case "user_weekly_reminders":
+              const userWeeklyRemindersResult = UserWeeklyReminders.safeParse(
+                block.input
+              );
+              if (userWeeklyRemindersResult.success) {
+                this.userWeeklyReminders = userWeeklyRemindersResult.data;
+                this.addToolResult(block, "success");
+                console.debug(
+                  "User weekly reminders:",
+                  this.userWeeklyReminders
+                );
+              } else {
+                this.addToolResult(block, "error");
+                console.error(
+                  "Error parsing user weekly reminders:",
+                  userWeeklyRemindersResult.error.errors
+                );
+              }
+              return this.handleMessage(undefined);
+            default:
+              throw new Error(`Unknown tool: ${block.name}`);
           }
-          break;
       }
     }
 
     // Termination condition
-    if (this.basicUserProfile && this.userTuningDetails && this.userWeeklyReminders) {
+    if (
+      this.basicUserProfile &&
+      this.userTuningDetails &&
+      this.userWeeklyReminders
+    ) {
       await this.createUserProfile();
       this.state = "COMPLETED";
     }
@@ -363,17 +400,21 @@ class OnboardingHandler {
   private async createUserProfile(): Promise<User> {
     // Today - sober_days
     const sobrietyStartDate = new Date();
-    sobrietyStartDate.setDate(sobrietyStartDate.getDate() - this.userTuningDetails.sober_days);
+    sobrietyStartDate.setDate(
+      sobrietyStartDate.getDate() - this.userTuningDetails.sober_days
+    );
 
     // Parse night_check and day_check into times of the day
     const nightCheckInTime = new Date();
-    const [nightHours, nightMinutes] = this.userTuningDetails.night_check.split(":");
+    const [nightHours, nightMinutes] =
+      this.userTuningDetails.night_check.split(":");
     nightCheckInTime.setHours(parseInt(nightHours, 10));
     nightCheckInTime.setMinutes(parseInt(nightMinutes, 10));
     // TODO: Account for timezone
     const dayCheckInTime = this.userTuningDetails.day_check ? new Date() : null;
     if (dayCheckInTime) {
-      const [dayHours, dayMinutes] = this.userTuningDetails.day_check.split(":");
+      const [dayHours, dayMinutes] =
+        this.userTuningDetails.day_check.split(":");
       dayCheckInTime.setHours(parseInt(dayHours, 10));
       dayCheckInTime.setMinutes(parseInt(dayMinutes, 10));
     }
@@ -418,6 +459,19 @@ class OnboardingHandler {
     });
   }
 
+  private addToolResult(tool_block: ToolUseBlock, result: string): void {
+    this.messages.push({
+      role: "user",
+      content: [
+        {
+          type: "tool_result",
+          tool_use_id: tool_block.id,
+          content: result,
+        },
+      ],
+    });
+  }
+
   private async promptModel(): Promise<Message> {
     const response = await this.claude.messages.create({
       system: SYSTEM_PROMPT,
@@ -428,7 +482,7 @@ class OnboardingHandler {
       tools: TOOLS,
     });
 
-    return response
+    return response;
   }
 }
 
