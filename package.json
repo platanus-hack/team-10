@@ -5,8 +5,10 @@
   "main": "src/server.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "bun run  --watch src/server.ts",
-    "dev": "bun run --watch src/server.ts --watch"
+
+    "start": "bun run --watch src/server.ts",
+    "dev": "bun run --watch src/server.ts"
+
   },
   "repository": {
     "type": "git",

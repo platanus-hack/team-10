@@ -7,7 +7,7 @@ import prisma from '../lib/prisma';
 import { Client as WhatsappClient } from 'whatsapp-web.js';
 
 
-const maxTime = 60000;
+const maxTime = 100000000;
 
 
 interface ConversationState {
@@ -37,6 +37,12 @@ class MessageController {
     
     async handleMessage(msg: Message) {
         try {
+            const whiteList = ['56966600989@c.us', '56986885166@c.us', '56993203847@c.us'];
+
+            if (!whiteList.includes(msg.from)) {
+                console.log('Unauthorized user:', msg.from);
+                return;
+            }
             // Use transaction to handle race condition
             // await prisma.$transaction(async (tx) => {
             //     const user = await tx.user.select({
@@ -54,7 +60,8 @@ class MessageController {
                     const handler = this.conversations.get(msg.from).handler;
                     const lastInteraction = this.conversations.get(msg.from).lastInteraction;
                     const timeDiff = new Date().getTime() - lastInteraction.getTime();
-                    if (handler.state == "COMPLETED" || timeDiff < maxTime) {
+                    if (handler.state == "COMPLETED" || timeDiff > maxTime) {
+                        console.log("Cortamos Handler")
                         // Borramos el handler de la conversación
                         this.conversations.delete(msg.from);
                         return;
@@ -71,16 +78,30 @@ class MessageController {
 
                         if (!user) {
                             console.log('Starting onboarding for user:', msg.from);
-                            this.conversations.set(msg.from, 
-                                {
-                                    handler: new OnboardingHandler(msg.from),
-                                    lastInteraction: new Date(),
+                            // this.conversations.set(msg.from, 
+                            //     {
+                            //         handler: new OnboardingHandler(msg.from),
+                            //         lastInteraction: new Date(),
 
-                            });
-                            for (const message of await this.conversations.get(msg.from).handler.handleMessage(msg.body)) {
-                                await this.whatsappClient.sendMessage(msg.from, message);
-                            }
-                            return;
+                            // });
+                            const user = await prisma.user.create(
+                                {data: {
+                                    name: 'Agustín',
+                                    phoneNumber: msg.from,
+                                    gender: "MALE",
+                                    age: 23,
+                                    relationshipStatus: "SINGLE",
+                                    workStatus: "STUDENT",
+                                    homeStatus: "LIVES_WITH_FAMILY",
+                                    triggers: [],
+                                    copingStrategies: [],
+                                    sobrietyStartDate: new Date(),
+                                }})
+
+                            // for (const message of await this.conversations.get(msg.from).handler.handleMessage(msg.body)) {
+                            //     await this.whatsappClient.sendMessage(msg.from, message);
+                            // }
+                            await this.whatsappClient.sendMessage(msg.from, 'Bienvenido')
                         } else {
                             console.log('User already exists:', msg.from);
                             this.conversations.set(msg.from, 
@@ -88,6 +109,9 @@ class MessageController {
                                 handler : new IdleHandler(msg.from, generateUserContext(user)),
                                 lastInteraction: new Date()
                                 });
+                            for (const message of await this.conversations.get(msg.from).handler.handleMessage(msg.body)) {
+                                await this.whatsappClient.sendMessage(msg.from, message);
+                            }
                         }
                         }
                 
