@@ -5,6 +5,7 @@ import generateUserContext from "../utils/generateUserContext";
 import prisma from "../lib/prisma";
 import { Client as WhatsappClient } from "whatsapp-web.js";
 import _ from 'lodash';
+import ClaudeHandler from "../handlers/claudeHandler";
 
 const CONVERSATION_TIMEOUT = 45 * 60 * 1000; // 45 minutes
 const MESSAGE_DELAY = 700;
@@ -16,7 +17,7 @@ const CONTACT_WHITELIST = [
 ];
 
 interface ConversationState {
-  handler: OnboardingHandler | IdleHandler;
+  handler: OnboardingHandler | IdleHandler | ClaudeHandler;
   lastInteraction: Date;
   messageQueue: string[];
   isProcessing: boolean;
@@ -177,6 +178,42 @@ class MessageController {
       );
     }
   }
-}
+  async handleStartConversation(usePhone: string) {
+    try {
+        if (!CONTACT_WHITELIST.includes(usePhone)) {
+          console.log("Unauthorized user:", usePhone);
+          return;
+        }
+        if (this.activeConversations.has(usePhone)) {
+            return; // Conversation already active
+        } else {
+            const user = await prisma.user.findUnique({
+                where: { phoneNumber: usePhone },
+                });
+            const claudeHandler = new ClaudeHandler(generateUserContext(user));
+            
+            console.log("Starting system intiated convo:", usePhone);
+            this.activeConversations.set(usePhone, {
+                handler: claudeHandler,
+                lastInteraction: new Date(),
+                messageQueue: [],
+                isProcessing: false
+            });
+            
+            claudeHandler.startConversation().then(async (response) => {
+                await this.whatsappClient.sendMessage(usePhone, response);
+            })
+        }
+
+
+
+  } catch (error) {
+    console.error("Error:", error);
+    await this.whatsappClient.sendMessage(
+      usePhone,
+      "Lo siento, algo salió mal. Por favor, inténtalo de nuevo más tarde."
+    );
+  }
+}}
 
 export default MessageController;
