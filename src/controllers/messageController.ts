@@ -6,6 +6,7 @@ import prisma from "../lib/prisma";
 import { Client as WhatsappClient } from "whatsapp-web.js";
 import _ from 'lodash';
 import ClaudeHandler from "../handlers/claudeHandler";
+import { HolidayService } from '../services/holidayService';
 
 const CONVERSATION_TIMEOUT = 45 * 60 * 1000; // 45 minutes
 const MESSAGE_DELAY = 700;
@@ -33,12 +34,32 @@ class MessageController {
   private activeConversations: Map<string, ConversationState>;
   private messageBuffer: Map<string, MessageBatch>;
   private debouncedProcessBuffer: Map<string, _.DebouncedFunc<() => void>>;
+  private holidayService: HolidayService;
+
+  private calculateSobrietyStreak(sobrietyStartDate: Date): number {
+    const today = new Date();
+    const startDate = new Date(sobrietyStartDate);
+    const diffTime = Math.abs(today.getTime() - startDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+}
+
+private async checkAndSendMilestoneMessage(user: any): Promise<void> {
+    const streak = this.calculateSobrietyStreak(user.sobrietyStartDate);
+    const milestones = [0, 1, 30, 60, 90, 180, 365]; // Define your milestones
+
+    if (milestones.includes(streak)) {
+        const message = `¡Felicidades! Has alcanzado ${streak} días sin beber alcohol. ¡Sigue así! 🎉`;
+        await this.whatsappClient.sendMessage(user.phoneNumber, message);
+    }
+}
 
   constructor(whatsappClient: WhatsappClient) {
     this.whatsappClient = whatsappClient;
     this.activeConversations = new Map();
     this.messageBuffer = new Map();
     this.debouncedProcessBuffer = new Map();
+    this.holidayService = new HolidayService(whatsappClient);
   }
 
   async initializeBot() {
@@ -102,6 +123,10 @@ class MessageController {
     return this.debouncedProcessBuffer.get(userId)!;
   }
 
+  public getActiveConversations() {
+    return this.activeConversations;
+  }
+
   async handleMessage(msg: Message) {
     try {
       if (!CONTACT_WHITELIST.includes(msg.from)) {
@@ -159,6 +184,7 @@ class MessageController {
         } else {
           // Start new conversation with idle handler
           console.log("Starting user-initiated conversation:", msg.from);
+          await this.checkAndSendMilestoneMessage(user);
           this.activeConversations.set(msg.from, {
             handler: new IdleHandler(msg.from, generateUserContext(user)),
             lastInteraction: new Date(),
@@ -214,6 +240,7 @@ class MessageController {
       "Lo siento, algo salió mal. Por favor, inténtalo de nuevo más tarde."
     );
   }
-}}
+  }
+}
 
 export default MessageController;

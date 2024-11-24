@@ -1,5 +1,8 @@
 import prisma from './lib/prisma';
 import WhatsAppBot from './services/whatsappBot';
+import { SchedulerService } from './services/schedulerService';
+import { HolidayService } from './services/holidayService';
+import { CheckInService } from './services/checkInService';
 
 async function main() {
     try {
@@ -10,6 +13,19 @@ async function main() {
         // Initialize WhatsApp bot
         const whatsappBot = new WhatsAppBot();
         await whatsappBot.initialize();
+        
+        // Initialize services
+        const holidayService = new HolidayService(whatsappBot.client);
+        const checkInService = new CheckInService(whatsappBot.client);
+        
+        const scheduler = new SchedulerService(
+            holidayService,
+            checkInService,
+            whatsappBot.messageController.getActiveConversations()
+        );
+        
+        // Start scheduled tasks
+        scheduler.startScheduledTasks();
         
         console.log('Application started successfully');
         
