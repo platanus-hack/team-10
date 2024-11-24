@@ -62,13 +62,10 @@ RUN mkdir -p /usr/src/app/.wwebjs_auth /usr/src/app/.wwebjs_cache && \
     chown -R bun:bun /usr/src/app/.wwebjs_auth /usr/src/app/.wwebjs_cache && \
     chmod 755 /usr/src/app/.wwebjs_auth /usr/src/app/.wwebjs_cache
 
-# Copy prisma directory including migrations
-COPY prisma ./prisma/
-
 # Switch to non-root user
 USER bun
 
 EXPOSE 3000
 
 # Run migrations and start the app
-CMD ["sh", "-c", "bunx prisma migrate deploy && bun run start"]
+CMD ["sh", "-c", "bun run prisma generate && bun run prisma migrate deploy && bun run start"]
