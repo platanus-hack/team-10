@@ -35,7 +35,6 @@ class WhatsAppBot {
         });
         
         this.messageController = new MessageController(this.client);
-        this.stateHandler = new StateHandler();
         
         this.setupEventListeners();
     }
