@@ -1,7 +1,8 @@
 import { PrismaClient } from '@prisma/client';
 import { type Holiday, holidays } from '../data/holidays';
-import { HolidayHandler } from '../handlers/holidayHandler';
 import { Client as WhatsappClient } from 'whatsapp-web.js';
+import ClaudeHandler from '../handlers/claudeHandler';
+import generateUserContext from '../utils/generateUserContext';
 
 export class HolidayService {
     private prisma: PrismaClient;
@@ -42,12 +43,10 @@ export class HolidayService {
             if (activeConversations.has(user.phoneNumber)) continue;
 
             for (const holiday of upcomingHolidays) {
-                const handler = new HolidayHandler(user.id, holiday);
-                const messages = await handler.handleMessage(null);
-                
-                for (const message of messages) {
-                    await this.whatsappClient.sendMessage(user.phoneNumber, message);
-                }
+                const userProfile = generateUserContext(user);
+                const handler = new ClaudeHandler(userProfile, `holiday-${holiday.name}`);
+                const initialMessage = await handler.startConversation();
+                await this.whatsappClient.sendMessage(user.phoneNumber, initialMessage);
             }
         }
     }
