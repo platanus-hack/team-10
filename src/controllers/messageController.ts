@@ -6,6 +6,7 @@ import prisma from "../lib/prisma";
 import { Client as WhatsappClient } from "whatsapp-web.js";
 import _ from 'lodash';
 import ClaudeHandler from "../handlers/claudeHandler";
+import { holidays } from "../data/holidays";
 
 const CONVERSATION_TIMEOUT = 45 * 60 * 1000; // 45 minutes
 const MESSAGE_DELAY = 700;
