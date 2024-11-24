@@ -55,6 +55,24 @@ class MessageController {
     }
   }
 
+  private async sendReminderMessage(userId: string) {
+    const reminderMessage = "No olvides escribir antes de que termine la conversación.";
+    try {
+      await this.whatsappClient.sendMessage(userId, reminderMessage);
+    } catch (error) {
+      console.error(`Error sending reminder message to ${userId}:`, error);
+    }
+  }
+
+  private scheduleReminder(userId: string, delay: number) {
+    setTimeout(async () => {
+      const conversation = this.activeConversations.get(userId);
+      if (conversation && !conversation.isProcessing) {
+        await this.sendReminderMessage(userId);
+      }
+    }, delay);
+  }
+
   constructor(whatsappClient: WhatsappClient) {
     this.whatsappClient = whatsappClient;
     this.activeConversations = new Map();
@@ -192,6 +210,9 @@ class MessageController {
 
           // Trigger debounced processing for the first message
           this.getOrCreateDebouncedProcessor(msg.from)();
+          
+          // Schedule reminder message after 5 minutes of inactivity
+          this.scheduleReminder(msg.from, 5 * 60 * 1000);
         }
       }
     } catch (error) {
