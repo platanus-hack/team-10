@@ -100,6 +100,6 @@ function generateUserContext(user) {
   return context.trim();
 }
 
-module.exports = {
+export default {
   generateUserContext,
 };

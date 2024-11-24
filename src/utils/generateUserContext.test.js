@@ -1,4 +1,4 @@
-const { generateUserContext } = require('./generateUserContext');
+import { generateUserContext } from './generateUserContext';
 
 // Test user object
 const testUser = {
@@ -27,7 +27,7 @@ const testUser2 = {
 };
 
 const context2 = generateUserContext(testUser2);
-console.log(context2); 
+console.log(context2);
 
 const testUser3 = {
   name: "Juan",

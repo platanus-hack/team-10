@@ -1,4 +1,4 @@
-const ClaudeService = require("../services/claudeService");
+import ClaudeService from "../services/claudeService";
 // Client
 
 
@@ -45,4 +45,4 @@ class ClaudeController {
     // }
 }
 
-module.exports = ClaudeController;
+export default ClaudeController;

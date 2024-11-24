@@ -1,4 +1,4 @@
-const { Anthropic } = require("@anthropic-ai/sdk");
+import { Anthropic } from "@anthropic-ai/sdk";
 
 class ClaudeService {
     constructor(apiKey) {
@@ -28,4 +28,4 @@ class ClaudeService {
     }
 }
 
-module.exports = ClaudeService;
+export default ClaudeService;

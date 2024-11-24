@@ -1,5 +1,5 @@
-const { Client, LocalAuth } = require('whatsapp-web.js');
-const qrcode = require('qrcode-terminal');
+import { Client, LocalAuth } from 'whatsapp-web.js';
+import qrcode from 'qrcode-terminal';
 import MessageController from '../controllers/messageController';
 
 class WhatsAppBot {
