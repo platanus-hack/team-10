@@ -4,7 +4,7 @@ import config from '../config/config';
 
 const anthropic = new Anthropic({
   apiKey: config.claude.apiKey,
-  
+
 });
 
 const prisma = new PrismaClient();
@@ -29,7 +29,7 @@ interface OnboardingState {
 export class OnboardingHandler {
   private state: OnboardingState = {
     step: 'INITIAL',
-    data: {}
+    data: {},
   };
 
   constructor(private phoneNumber: string) {}
@@ -210,10 +210,10 @@ export class OnboardingHandler {
           response = 'Lo siento, ha ocurrido un error. Por favor, intenta nuevamente.';
       }
 
-      return response;
+      return [response];
     } catch (error) {
       console.error('Error in handleMessage:', error);
-      return 'Lo siento, ha ocurrido un error. Por favor, intenta nuevamente.';
+      return ['Lo siento, ha ocurrido un error. Por favor, intenta nuevamente.'];
     }
   }
 }
