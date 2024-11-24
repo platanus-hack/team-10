@@ -41,13 +41,6 @@ enum HomeStatus {
   OTHER
 }
 
-enum ConversationState {
-  IDLE
-  ONBOARDING
-  IN_CONVERSATION
-  CHECKIN
-}
-
 model User {
   id            String    @id @default(uuid())
   phoneNumber   String    @unique // WhatsApp phone number
@@ -57,6 +50,7 @@ model User {
   workStatus    WorkStatus?
   relationshipStatus RelationshipStatus?
   homeStatus    HomeStatus?
+  sobrietyStartDate        DateTime?
 
   // General tracking
   lastInteraction DateTime @default(now())
@@ -64,25 +58,36 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  // Conversation tracking
-  totalMessages Int       @default(0)
-  allMessages   String[]
-  lastMessage   String?
-  currentState  ConversationState?   // For state management
-
   // Recovery tracking
   triggers           String[]
   copingStrategies   String[]
   riskLevel          Int       @default(0)
 
-  // Check-in 
-  sobrietyStartDate        DateTime?
-  checkInStreak      Int       @default(0)
-  weeklyCheckInDate DateTime?
-  dailyCheckInDate  DateTime?
-  lastCheckInTime   DateTime?
+  // Check-ins
+  eveningCheckInTime DateTime @db.Timetz(0)
+  morningCheckInTime DateTime? @db.Timetz(0)
+
+  // Cues
+  timeTriggers        TimeTrigger[]
 
   @@index([phoneNumber])
 }
 
+model TimeTrigger {
+  id        String    @id @default(uuid())
+  user      User      @relation(fields: [userId], references: [id])
+  userId    String
+  day       DAY
+  time      DateTime  @db.Timetz(0)
+}
+
+enum DAY {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
 
