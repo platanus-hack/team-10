@@ -1,8 +1,10 @@
 import { Anthropic } from '@anthropic-ai/sdk';
 import { PrismaClient, User } from '@prisma/client';
+import config from '../config/config';
 
 const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || '',
+  apiKey: config.claude.apiKey,
+  
 });
 
 const prisma = new PrismaClient();
