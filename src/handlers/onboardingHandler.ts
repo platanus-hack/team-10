@@ -8,6 +8,8 @@ const anthropic = new Anthropic({
 
 const prisma = new PrismaClient();
 
+
+
 export type InterpretableStep = 
 | "NAME"
 | "GENDER"
@@ -182,7 +184,7 @@ const interpretationContexts: Record<InterpretableStep, InterpretationContext> =
 };
 
 export class OnboardingHandler {
-  private state: OnboardingState = {
+    state: OnboardingState = {
     step: "WELCOME",
     data: {},
     retryCount: 0,
@@ -325,7 +327,6 @@ export class OnboardingHandler {
       sobrietyStartDate,
       eveningCheckInTime,
       morningCheckInTime,
-      riskLevel,
     } = this.state.data;
 
     if (!name || !eveningCheckInTime) {
@@ -343,7 +344,6 @@ export class OnboardingHandler {
           homeStatus,
           triggers: triggers || [],
           copingStrategies: [],
-          riskLevel: riskLevel || 0,
           sobrietyStartDate,
           eveningCheckInTime,
           morningCheckInTime,

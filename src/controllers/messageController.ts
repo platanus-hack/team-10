@@ -1,20 +1,23 @@
 import { OnboardingHandler } from '../handlers/onboardingHandler';
-import type Anthropic from '@anthropic-ai/sdk';
 import IdleHandler from '../handlers/idleHandler';
 import type { Message } from 'whatsapp-web.js';
 import generateUserContext from '../utils/generateUserContext';
 import prisma from '../lib/prisma';
-import type WhatsAppBot from '../services/whatsappBot';
 
 import { Client as WhatsappClient } from 'whatsapp-web.js';
 
 
-const UserStates = require('../constants/userStates');
-const { getIDLEMessage, activeConversations} = require('../utils/helpers');
+const maxTime = 60000;
+
+
+interface ConversationState {
+    handler: OnboardingHandler | IdleHandler;
+    lastInteraction: Date;
+}
 
 class MessageController {
-    private conversations: Map<string, OnboardingHandler | IdleHandler>;
     private whatsappClient: WhatsappClient;
+    private conversations: Map<string, ConversationState>;
 
     constructor(whatsappClient: WhatsappClient) {
         this.conversations = new Map();
@@ -48,35 +51,54 @@ class MessageController {
 
 
                 if (this.conversations.has(msg.from)) {
-                    const handler = this.conversations.get(msg.from);
+                    const handler = this.conversations.get(msg.from).handler;
+                    const lastInteraction = this.conversations.get(msg.from).lastInteraction;
+                    const timeDiff = new Date().getTime() - lastInteraction.getTime();
+                    if (handler.state == "COMPLETED" || timeDiff < maxTime) {
+                        // Borramos el handler de la conversación
+                        this.conversations.delete(msg.from);
+                        return;
+                    }
                     const response = await handler.handleMessage(msg.body);
                     for (const message of response) {
                         await this.whatsappClient.sendMessage(msg.from, message);
                     }
                     return;
                 } else {
-                    const user = await prisma.user.findUnique({
-                        where: { phoneNumber: msg.from }
-                    });
+                        const user = await prisma.user.findUnique({
+                            where: { phoneNumber: msg.from }
+                        });
 
-                    if (!user) {
-                        console.log('Starting onboarding for user:', msg.from);
-                        this.conversations.set(msg.from, new OnboardingHandler(msg.from));
-                        for (const message of await this.conversations.get(msg.from).handleMessage(msg.body)) {
-                            await this.whatsappClient.sendMessage(msg.from, message);
+                        if (!user) {
+                            console.log('Starting onboarding for user:', msg.from);
+                            this.conversations.set(msg.from, 
+                                {
+                                    handler: new OnboardingHandler(msg.from),
+                                    lastInteraction: new Date(),
+
+                            });
+                            for (const message of await this.conversations.get(msg.from).handler.handleMessage(msg.body)) {
+                                await this.whatsappClient.sendMessage(msg.from, message);
+                            }
+                            return;
+                        } else {
+                            console.log('User already exists:', msg.from);
+                            this.conversations.set(msg.from, 
+                                {
+                                handler : new IdleHandler(msg.from, generateUserContext(user)),
+                                lastInteraction: new Date()
+                                });
                         }
-                        return;
-                    } else {
-                        console.log('User already exists:', msg.from);
-                        this.conversations.set(msg.from, new IdleHandler(msg.from, generateUserContext(user)));
-                    }
-                }
+                        }
+                
 
         } catch (error) {
             console.error('Error:', error);
             await this.whatsappClient.sendMessage(msg.from, 'Lo siento, algo salió mal. Por favor, inténtalo de nuevo más tarde.');
         }
     }
+
+
 
     // async handleStateMessage(msg, currentState) {
     //     switch (currentState) {
