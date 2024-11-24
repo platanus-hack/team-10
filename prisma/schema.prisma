@@ -58,10 +58,6 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  // Recovery tracking
-  triggers           String[]
-  copingStrategies   String[]
-
   // Check-ins
   eveningCheckInTime DateTime @db.Timetz(0)
   morningCheckInTime DateTime? @db.Timetz(0)
