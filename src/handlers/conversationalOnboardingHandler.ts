@@ -326,6 +326,8 @@ class OnboardingHandler {
   public async handleMessage(message: string): Promise<string[]> {
     this.addUserMessage(message);
 
+    console.debug("Current messages:", this.messages);
+
     const response = await this.claude.messages.create({
       system: SYSTEM_PROMPT,
       model: config.claude.model,
@@ -350,16 +352,19 @@ class OnboardingHandler {
               case "user_profile":
                 this.basicUserProfile = BasicUserProfile.parse(block.input);
                 this.addUserMessage(".");
+                console.debug("Basic user profile:", this.basicUserProfile);
                 break;
               case "user_tuning_details":
                 this.userTuningDetails = UserTuningDetails.parse(block.input);
                 this.addUserMessage(".");
+                console.debug("User tuning details:", this.userTuningDetails);
                 break;
               case "user_weekly_reminders":
                 this.userWeeklyReminders = UserWeeklyReminders.parse(
                   block.input
                 );
                 this.addUserMessage(".");
+                console.debug("User weekly reminders:", this.userWeeklyReminders);
                 break;
               default:
                 throw new Error(`Unknown tool: ${block.name}`);

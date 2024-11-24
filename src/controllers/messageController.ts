@@ -1,12 +1,12 @@
-import { OnboardingHandler } from "../handlers/onboardingHandler";
+import OnboardingHandler from "../handlers/conversationalOnboardingHandler";
 import IdleHandler from "../handlers/idleHandler";
 import type { Message } from "whatsapp-web.js";
 import generateUserContext from "../utils/generateUserContext";
 import prisma from "../lib/prisma";
 import { Client as WhatsappClient } from "whatsapp-web.js";
-import _ from 'lodash';
+import _ from "lodash";
 import ClaudeHandler from "../handlers/claudeHandler";
-import { HolidayService } from '../services/holidayService';
+import { HolidayService } from "../services/holidayService";
 
 const CONVERSATION_TIMEOUT = 45 * 60 * 1000; // 45 minutes
 const MESSAGE_DELAY = 700;
@@ -42,17 +42,17 @@ class MessageController {
     const diffTime = Math.abs(today.getTime() - startDate.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
-}
+  }
 
-private async checkAndSendMilestoneMessage(user: any): Promise<void> {
+  private async checkAndSendMilestoneMessage(user: any): Promise<void> {
     const streak = this.calculateSobrietyStreak(user.sobrietyStartDate);
     const milestones = [0, 1, 30, 60, 90, 180, 365]; // Define your milestones
 
     if (milestones.includes(streak)) {
-        const message = `¡Felicidades! Has alcanzado ${streak} días sin beber alcohol. ¡Sigue así! 🎉`;
-        await this.whatsappClient.sendMessage(user.phoneNumber, message);
+      const message = `¡Felicidades! Has alcanzado ${streak} días sin beber alcohol. ¡Sigue así! 🎉`;
+      await this.whatsappClient.sendMessage(user.phoneNumber, message);
     }
-}
+  }
 
   constructor(whatsappClient: WhatsappClient) {
     this.whatsappClient = whatsappClient;
@@ -72,18 +72,18 @@ private async checkAndSendMilestoneMessage(user: any): Promise<void> {
     if (!conversation) return;
 
     conversation.isProcessing = true;
-    
+
     for (const message of messages) {
       try {
         await this.whatsappClient.sendMessage(userId, message);
-        await new Promise(resolve => setTimeout(resolve, MESSAGE_DELAY));
+        await new Promise((resolve) => setTimeout(resolve, MESSAGE_DELAY));
       } catch (error) {
         console.error(`Error sending message to ${userId}:`, error);
       }
     }
-    
+
     conversation.isProcessing = false;
-    
+
     // Process any remaining messages in the queue
     if (conversation.messageQueue.length > 0) {
       const remainingMessages = [...conversation.messageQueue];
@@ -137,16 +137,20 @@ private async checkAndSendMilestoneMessage(user: any): Promise<void> {
       // Buffer the incoming message
       const currentBatch = this.messageBuffer.get(msg.from) || {
         messages: [],
-        timestamp: new Date()
+        timestamp: new Date(),
       };
       currentBatch.messages.push(msg.body);
       this.messageBuffer.set(msg.from, currentBatch);
 
       if (this.activeConversations.has(msg.from)) {
         const conversation = this.activeConversations.get(msg.from)!;
-        const timeDiff = new Date().getTime() - conversation.lastInteraction.getTime();
+        const timeDiff =
+          new Date().getTime() - conversation.lastInteraction.getTime();
 
-        if (conversation.handler.state === "COMPLETED" || timeDiff > CONVERSATION_TIMEOUT) {
+        if (
+          conversation.handler.state === "COMPLETED" ||
+          timeDiff > CONVERSATION_TIMEOUT
+        ) {
           this.activeConversations.delete(msg.from);
           this.messageBuffer.delete(msg.from);
           return;
@@ -164,23 +168,16 @@ private async checkAndSendMilestoneMessage(user: any): Promise<void> {
         if (!user) {
           // Onboarding flow - immediate processing for first message
           console.log("Starting onboarding", msg.from);
-          await prisma.user.create({
-            data: {
-              name: "Agustín",
-              phoneNumber: msg.from,
-              gender: "MALE",
-              age: 23,
-              relationshipStatus: "SINGLE",
-              workStatus: "STUDENT",
-              homeStatus: "LIVES_WITH_FAMILY",
-              triggers: [],
-              copingStrategies: [],
-              sobrietyStartDate: new Date(),
-              eveningCheckInTime: new Date(),
-              morningCheckInTime: new Date(),
-            },
+          const onboardingHandler = new OnboardingHandler(msg.from);
+
+          this.activeConversations.set(msg.from, {
+            handler: onboardingHandler,
+            lastInteraction: new Date(),
+            messageQueue: [],
+            isProcessing: false,
           });
-          await this.whatsappClient.sendMessage(msg.from, "Bienvenido");
+
+          this.getOrCreateDebouncedProcessor(msg.from)();
         } else {
           // Start new conversation with idle handler
           console.log("Starting user-initiated conversation:", msg.from);
@@ -189,9 +186,9 @@ private async checkAndSendMilestoneMessage(user: any): Promise<void> {
             handler: new IdleHandler(msg.from, generateUserContext(user)),
             lastInteraction: new Date(),
             messageQueue: [],
-            isProcessing: false
+            isProcessing: false,
           });
-          
+
           // Trigger debounced processing for the first message
           this.getOrCreateDebouncedProcessor(msg.from)();
         }
@@ -206,40 +203,37 @@ private async checkAndSendMilestoneMessage(user: any): Promise<void> {
   }
   async handleStartConversation(usePhone: string) {
     try {
-        if (!CONTACT_WHITELIST.includes(usePhone)) {
-          console.log("Unauthorized user:", usePhone);
-          return;
-        }
-        if (this.activeConversations.has(usePhone)) {
-            return; // Conversation already active
-        } else {
-            const user = await prisma.user.findUnique({
-                where: { phoneNumber: usePhone },
-                });
-            const claudeHandler = new ClaudeHandler(generateUserContext(user));
-            
-            console.log("Starting system intiated convo:", usePhone);
-            this.activeConversations.set(usePhone, {
-                handler: claudeHandler,
-                lastInteraction: new Date(),
-                messageQueue: [],
-                isProcessing: false
-            });
-            
-            claudeHandler.startConversation().then(async (response) => {
-                await this.whatsappClient.sendMessage(usePhone, response);
-            })
-        }
+      if (!CONTACT_WHITELIST.includes(usePhone)) {
+        console.log("Unauthorized user:", usePhone);
+        return;
+      }
+      if (this.activeConversations.has(usePhone)) {
+        return; // Conversation already active
+      } else {
+        const user = await prisma.user.findUnique({
+          where: { phoneNumber: usePhone },
+        });
+        const claudeHandler = new ClaudeHandler(generateUserContext(user));
 
+        console.log("Starting system intiated convo:", usePhone);
+        this.activeConversations.set(usePhone, {
+          handler: claudeHandler,
+          lastInteraction: new Date(),
+          messageQueue: [],
+          isProcessing: false,
+        });
 
-
-  } catch (error) {
-    console.error("Error:", error);
-    await this.whatsappClient.sendMessage(
-      usePhone,
-      "Lo siento, algo salió mal. Por favor, inténtalo de nuevo más tarde."
-    );
-  }
+        claudeHandler.startConversation().then(async (response) => {
+          await this.whatsappClient.sendMessage(usePhone, response);
+        });
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      await this.whatsappClient.sendMessage(
+        usePhone,
+        "Lo siento, algo salió mal. Por favor, inténtalo de nuevo más tarde."
+      );
+    }
   }
 }
 
