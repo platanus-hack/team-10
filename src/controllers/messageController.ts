@@ -1,22 +1,20 @@
-import type { PrismaClient } from '@prisma/client/extension';
 import { OnboardingHandler } from '../handlers/onboardingHandler';
 import type Anthropic from '@anthropic-ai/sdk';
 import IdleHandler from '../handlers/idleHandler';
 import type WhatsAppBot from '../services/whatsappBot';
 import type { Message } from 'whatsapp-web.js';
+import generateUserContext from '../utils/generateUserContext';
+import prisma from '../lib/prisma';
 
 const UserStates = require('../constants/userStates');
-const prisma = require('../lib/prisma').default;
 const { getIDLEMessage, activeConversations} = require('../utils/helpers');
 
 class MessageController {
     private client: Anthropic;
-    private prisma: PrismaClient;
     private conversations: Map<string, OnboardingHandler | IdleHandler>;
 
     constructor(client) {
         this.client = client;
-        this.prisma = prisma;
         this.conversations = new Map();
     }
 
@@ -34,7 +32,7 @@ class MessageController {
     async handleMessage(msg: Message) {
         try {
             // Use transaction to handle race condition
-            // await this.prisma.$transaction(async (tx) => {
+            // await prisma.$transaction(async (tx) => {
             //     const user = await tx.user.select({
             //         where: { phoneNumber: msg.from },
             //         update: { lastInteraction: new Date() },
@@ -54,7 +52,7 @@ class MessageController {
                     }
                     return;
                 } else {
-                    const user = await this.prisma.user.findUnique({
+                    const user = await prisma.user.findUnique({
                         where: { phoneNumber: msg.from }
                     });
 
@@ -67,7 +65,7 @@ class MessageController {
                         return;
                     } else {
                         console.log('User already exists:', msg.from);
-                        this.conversations.set(msg.from, new IdleHandler(msg.from, "Agustín tiene 23 años y es un estudiante universitario. Está soltero y vive con su familia. Lleva 3 meses tratando de mantenerse sobrio."));
+                        this.conversations.set(msg.from, new IdleHandler(msg.from, generateUserContext(user)));
                     }
                 }
 
@@ -102,7 +100,7 @@ class MessageController {
     // async handleOnboarding(msg) {
     //     const name = msg.body.trim();
         
-    //     await this.prisma.user.update({
+    //     await prisma.user.update({
     //         where: { phoneNumber: msg.from },
     //         data: { 
     //             name,
@@ -118,7 +116,7 @@ class MessageController {
     // }
 
     // async handleIdle(msg) {
-    //     const user = await this.prisma.user.findUnique({
+    //     const user = await prisma.user.findUnique({
     //         where: { phoneNumber: msg.from }
     //     });
         
@@ -141,7 +139,7 @@ class MessageController {
         
     //     await msg.reply(response);
         
-    //     await this.prisma.user.update({
+    //     await prisma.user.update({
     //         where: { phoneNumber: msg.from },
     //         data: {
     //             lastMessage: msg.body,
@@ -159,7 +157,7 @@ class MessageController {
         
     //     // If no handler exists (e.g., after server restart), create new one
     //     if (!handler) {
-    //         const user = await this.prisma.user.findUnique({
+    //         const user = await prisma.user.findUnique({
     //             where: { phoneNumber: msg.from }
     //         });
             
@@ -179,7 +177,7 @@ class MessageController {
     //     const response = await handler.handleMessage(msg.body);
     //     await msg.reply(response);
         
-    //     await this.prisma.user.update({
+    //     await prisma.user.update({
     //         where: { phoneNumber: msg.from },
     //         data: {
     //             lastMessage: msg.body,

@@ -1,4 +1,6 @@
-function generateUserContext(user) {
+import { type User } from '@prisma/client';
+
+function generateUserContext(user: User) {
   // Return empty string for null/undefined user
   if (!user) return '';
 
@@ -100,6 +102,4 @@ function generateUserContext(user) {
   return context.trim();
 }
 
-export default {
-  generateUserContext,
-};
+export default generateUserContext;

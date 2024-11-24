@@ -47,90 +47,6 @@ export class OnboardingHandler {
     return this.state.step;
   }
 
-  private async createUserProfile(): Promise<void> {
-    if (this.state.step !== "COMPLETED") {
-      throw new Error(
-        "Cannot create user profile before onboarding is completed"
-      );
-    }
-
-    const {
-      name,
-      gender,
-      age,
-      workStatus,
-      homeStatus,
-      triggers,
-      sobrietyStartDate,
-      eveningCheckInTime,
-      morningCheckInTime,
-      riskLevel,
-    } = this.state.data;
-
-    // Validate required fields
-    if (!name || !eveningCheckInTime) {
-      throw new Error("Missing required fields for user profile");
-    }
-
-    try {
-      await prisma.user.create({
-        data: {
-          phoneNumber: this.phoneNumber,
-          name,
-          gender,
-          age,
-          workStatus,
-          homeStatus,
-          triggers: triggers || [],
-          copingStrategies: [], // Initialize empty, will be filled later
-          riskLevel: riskLevel || 0,
-          sobrietyStartDate,
-          eveningCheckInTime,
-          morningCheckInTime,
-          isActive: true,
-        },
-      });
-    } catch (error) {
-      console.error("Error creating user profile:", error);
-      throw new Error("Failed to create user profile");
-    }
-  }
-
-  private async interpretWithClaude(
-    message: string,
-    context: string
-  ): Promise<any> {
-    try {
-      const prompt = `
-        Context: ${context}
-        User message: "${message}"
-        
-        Extract the relevant information from the user's message and return it in a structured JSON format.
-        If you're unsure about the interpretation, return { "confidence": "low" } instead of guessing.
-        Only return the JSON, no other text.
-      `;
-
-      const response = await anthropic.messages.create({
-        model: "claude-3-haiku-20240307",
-        max_tokens: 300,
-        messages: [{ role: "user", content: prompt }],
-        system:
-          'You are a helpful assistant that extracts structured data from user messages. Only respond with valid JSON. Be conservative in your interpretations - if you\'re not confident, return { "confidence": "low" }.',
-        temperature: 0,
-      });
-
-      const content = response.content.find((c) => c.type === "text")?.text;
-      if (!content) {
-        throw new Error("No text content in response");
-      }
-
-      return JSON.parse(content);
-    } catch (error) {
-      console.error("Error interpreting message with Claude:", error);
-      return { confidence: "low" };
-    }
-  }
-
   private getPromptForStep(step: OnboardingStep): string[] {
     const prompts: Record<OnboardingStep, string[]> = {
       WELCOME: [
@@ -229,23 +145,106 @@ export class OnboardingHandler {
     return stepOrder[currentIndex + 1] || "COMPLETED";
   }
 
-  public async getInitialMessages(): Promise<string[]> {
-    return this.getPromptForStep("WELCOME");
+  private async createUserProfile(): Promise<void> {
+    if (this.state.step !== "COMPLETED") {
+      throw new Error(
+        "Cannot create user profile before onboarding is completed"
+      );
+    }
+
+    const {
+      name,
+      gender,
+      age,
+      workStatus,
+      homeStatus,
+      triggers,
+      sobrietyStartDate,
+      eveningCheckInTime,
+      morningCheckInTime,
+      riskLevel,
+    } = this.state.data;
+
+    if (!name || !eveningCheckInTime) {
+      throw new Error("Missing required fields for user profile");
+    }
+
+    try {
+      await prisma.user.create({
+        data: {
+          phoneNumber: this.phoneNumber,
+          name,
+          gender,
+          age,
+          workStatus,
+          homeStatus,
+          triggers: triggers || [],
+          copingStrategies: [],
+          riskLevel: riskLevel || 0,
+          sobrietyStartDate,
+          eveningCheckInTime,
+          morningCheckInTime,
+          isActive: true,
+        },
+      });
+    } catch (error) {
+      console.error("Error creating user profile:", error);
+      throw new Error("Failed to create user profile");
+    }
   }
 
-  public async handleMessage(message: string): Promise<string[]> {
+  private async interpretWithClaude(
+    message: string,
+    context: string
+  ): Promise<any> {
+    try {
+      const prompt = `
+        Context: ${context}
+        User message: "${message}"
+        
+        Extract the relevant information from the user's message and return it in a structured JSON format.
+        If you're unsure about the interpretation, return { "confidence": "low" } instead of guessing.
+        Only return the JSON, no other text.
+      `;
+
+      const response = await anthropic.messages.create({
+        model: "claude-3-haiku-20240307",
+        max_tokens: 300,
+        messages: [{ role: "user", content: prompt }],
+        system:
+          'You are a helpful assistant that extracts structured data from user messages. Only respond with valid JSON. Be conservative in your interpretations - if you\'re not confident, return { "confidence": "low" }.',
+        temperature: 0,
+      });
+
+      const content = response.content.find((c) => c.type === "text")?.text;
+      if (!content) {
+        throw new Error("No text content in response");
+      }
+
+      return JSON.parse(content);
+    } catch (error) {
+      console.error("Error interpreting message with Claude:", error);
+      return { confidence: "low" };
+    }
+  }
+
+  public async handleMessage(message: string | null = null): Promise<string[]> {
     try {
       let response: string[];
       let interpretedData: any;
-      let user: User | undefined;
 
       switch (this.state.step) {
         case "WELCOME":
+          // Send welcome message and transition to NAME state
+          response = this.getPromptForStep("WELCOME");
           this.state.step = "NAME";
-          response = this.getPromptForStep("NAME");
-          break;
+          return response;
 
         case "NAME":
+          if (!message) {
+            return this.getPromptForStep("NAME");
+          }
+          
           interpretedData = await this.interpretWithClaude(
             message,
             "Extract the user's name"
@@ -261,14 +260,16 @@ export class OnboardingHandler {
               "Lo siento, no pude entender tu nombre. ¿Podrías decírmelo nuevamente?"
             );
           }
-          break;
+          return response;
 
         case "GENDER":
+          if (!message) {
+            return this.getPromptForStep("GENDER");
+          }
+
           interpretedData = await this.interpretWithClaude(
             message,
-            "Classify gender into: MALE, FEMALE, NON_BINARY, OTHER, PREFER_NOT_TO_SAY. " +
-              "Look for keywords like 'masculino'/'hombre' for MALE, 'femenino'/'mujer' for FEMALE, " +
-              "'no binario' for NON_BINARY, 'prefiero no decir' for PREFER_NOT_TO_SAY"
+            "Classify gender into: MALE, FEMALE, NON_BINARY, OTHER, PREFER_NOT_TO_SAY"
           );
           if (interpretedData?.gender) {
             this.state.data.gender = interpretedData.gender;
@@ -281,6 +282,10 @@ export class OnboardingHandler {
           );
 
         case "AGE":
+          if (!message) {
+            return this.getPromptForStep("AGE");
+          }
+
           interpretedData = await this.interpretWithClaude(
             message,
             "Extract age as a number between 18 and 100"
@@ -295,6 +300,10 @@ export class OnboardingHandler {
           );
 
         case "WORK_STATUS":
+          if (!message) {
+            return this.getPromptForStep("WORK_STATUS");
+          }
+
           interpretedData = await this.interpretWithClaude(
             message,
             "Classify work status into: EMPLOYED, UNEMPLOYED, STUDENT, RETIRED, OTHER"
@@ -309,6 +318,10 @@ export class OnboardingHandler {
           );
 
         case "HOME_STATUS":
+          if (!message) {
+            return this.getPromptForStep("HOME_STATUS");
+          }
+
           interpretedData = await this.interpretWithClaude(
             message,
             "Classify living situation into: LIVES_ALONE, LIVES_WITH_FAMILY, LIVES_WITH_ROOMMATES, HOMELESS, OTHER"
@@ -323,18 +336,23 @@ export class OnboardingHandler {
           );
 
         case "PROBLEM_HISTORY":
+          if (!message) {
+            return this.getPromptForStep("PROBLEM_HISTORY");
+          }
+
           this.state.step = "TRIGGERS";
           return this.getPromptForStep("TRIGGERS");
 
         case "TRIGGERS":
+          if (!message) {
+            return this.getPromptForStep("TRIGGERS");
+          }
+
           interpretedData = await this.interpretWithClaude(
             message,
             "Extract potential trigger situations or times. Return { triggers: string[], confidence: 'high'|'low' }"
           );
-          if (
-            interpretedData?.triggers &&
-            interpretedData.confidence === "high"
-          ) {
+          if (interpretedData?.triggers && interpretedData.confidence === "high") {
             this.state.data.triggers = interpretedData.triggers;
             this.state.step = "EVENING_CHECKIN";
             return this.getPromptForStep("EVENING_CHECKIN");
@@ -348,9 +366,13 @@ export class OnboardingHandler {
           );
 
         case "EVENING_CHECKIN":
+          if (!message) {
+            return this.getPromptForStep("EVENING_CHECKIN");
+          }
+
           interpretedData = await this.interpretWithClaude(
             message,
-            "Extract evening time in 24-hour format. Return { time: string, confidence: 'high'|'low' }. Example: '21:00' for 9 PM"
+            "Extract evening time in 24-hour format. Return { time: string, confidence: 'high'|'low' }"
           );
           if (interpretedData?.time && interpretedData.confidence === "high") {
             this.state.data.eveningCheckInTime = interpretedData.time;
@@ -365,6 +387,10 @@ export class OnboardingHandler {
           );
 
         case "MORNING_CHECKIN":
+          if (!message) {
+            return this.getPromptForStep("MORNING_CHECKIN");
+          }
+
           if (message.toLowerCase().includes("no")) {
             this.state.data.morningCheckInTime = null;
             this.state.step = "RECOVERY_DATE";
@@ -373,7 +399,7 @@ export class OnboardingHandler {
 
           interpretedData = await this.interpretWithClaude(
             message,
-            "Extract morning time in 24-hour format. Return { time: string, confidence: 'high'|'low' }. Example: '08:00' for 8 AM"
+            "Extract morning time in 24-hour format. Return { time: string, confidence: 'high'|'low' }"
           );
           if (interpretedData?.time && interpretedData.confidence === "high") {
             this.state.data.morningCheckInTime = interpretedData.time;
@@ -387,6 +413,10 @@ export class OnboardingHandler {
           );
 
         case "RECOVERY_DATE":
+          if (!message) {
+            return this.getPromptForStep("RECOVERY_DATE");
+          }
+
           interpretedData = await this.interpretWithClaude(
             message,
             "Extract date or 'today'. Return { date: string, isToday: boolean, confidence: 'high'|'low' }"
@@ -396,28 +426,23 @@ export class OnboardingHandler {
               ? new Date()
               : new Date(interpretedData.date);
             this.state.step = "COMPLETED";
-            await this.createUserProfile(); // Create user profile once all data is collected
-            response = this.getPromptForStep("COMPLETED");
-          } else {
-            response = this.handleRetry(
-              'Puedes decirme "hoy" o una fecha específica para iniciar tu proceso.\n' +
-                'Por ejemplo: "1 de abril" o "hoy mismo"'
-            );
+            await this.createUserProfile();
+            return this.getPromptForStep("COMPLETED");
           }
-          break;
+          return this.handleRetry(
+            'Puedes decirme "hoy" o una fecha específica para iniciar tu proceso.\n' +
+              'Por ejemplo: "1 de abril" o "hoy mismo"'
+          );
 
         case "COMPLETED":
-          response = [
+          return [
             "Estoy aquí para apoyarte. ¿Hay algo específico en lo que pueda ayudarte ahora?",
           ];
-          break;
 
         default:
           console.error("Invalid step:", this.state.step);
-          response = ["Lo siento, ha ocurrido un error. Volvamos a empezar."];
+          return ["Lo siento, ha ocurrido un error. Volvamos a empezar."];
       }
-
-      return response;
     } catch (error) {
       console.error("Error in handleMessage:", error);
       return [
