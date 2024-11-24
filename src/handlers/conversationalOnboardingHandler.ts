@@ -156,7 +156,7 @@ const TOOLS: Tool[] = [
             "género del usuario, debe ser una de estas opciones: MALE, FEMALE, NON_BINARY, OTHER, PREFER_NOT_TO_SAY",
         },
         age: {
-          type: "string",
+          type: "number",
           description: "edad del usuario",
         },
         workStatus: {
@@ -203,7 +203,7 @@ const TOOLS: Tool[] = [
             "Hora del usuario para el inicio diurno de su conversación (opcional). Poner NULL en caso de que no desee check-in diurno. Ejemplo: 13:00",
         },
         sober_days: {
-          type: "string",
+          type: "number",
           description:
             "Cantidad de días que el usuario lleva en estado de sobriedad",
         },
@@ -337,13 +337,12 @@ class OnboardingHandler {
       tools: TOOLS,
     });
 
-    this.messages.push(response);
-
     const responseMessages: string[] = [];
 
     for (const block of response.content) {
       switch (block.type) {
         case "text":
+          this.addAssistantMessage(block.text);
           responseMessages.push(block.text);
           break;
         case "tool_use":
@@ -425,6 +424,18 @@ class OnboardingHandler {
   private addUserMessage(message: string): void {
     this.messages.push({
       role: "user",
+      content: [
+        {
+          type: "text",
+          text: message,
+        },
+      ],
+    });
+  }
+
+  private addAssistantMessage(message: string): void {
+    this.messages.push({
+      role: "assistant",
       content: [
         {
           type: "text",

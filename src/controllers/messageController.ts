@@ -10,7 +10,7 @@ import { HolidayService } from "../services/holidayService";
 
 const CONVERSATION_TIMEOUT = 45 * 60 * 1000; // 45 minutes
 const MESSAGE_DELAY = 700;
-const DEBOUNCE_DELAY = 2000;
+const DEBOUNCE_DELAY = 1200;
 const CONTACT_WHITELIST = [
   "56966600989@c.us",
   "56986885166@c.us",
