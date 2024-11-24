@@ -1,8 +1,8 @@
-const UserStates = require('../constants/userStates');
-const ClaudeService = require('../services/claudeService');
-const StateHandler = require('../handlers/stateHandler');
-const prisma = require('../lib/prisma').default;
-const { getIDLEMessage, activeConversations} = require('../utils/helpers');
+import UserStates from '../constants/userStates';
+import ClaudeService from '../services/claudeService';
+import StateHandler from '../handlers/stateHandler';
+import { default as prisma } from '../lib/prisma';
+import { getIDLEMessage, activeConversations } from '../utils/helpers';
 
 class MessageController {
     constructor(client) {
@@ -152,4 +152,4 @@ class MessageController {
     }
 }
 
-module.exports = MessageController; 
+export default MessageController; 

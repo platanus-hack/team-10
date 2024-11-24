@@ -12,4 +12,4 @@ const UserStates = {
   CHECKIN: 'CHECKIN',
 };
 
-module.exports = UserStates;
+export default UserStates;
