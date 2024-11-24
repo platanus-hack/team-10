@@ -7,7 +7,7 @@ import prisma from '../lib/prisma';
 import { Client as WhatsappClient } from 'whatsapp-web.js';
 
 
-const maxTime = 60000;
+const maxTime = 100000000;
 
 
 interface ConversationState {
@@ -54,7 +54,8 @@ class MessageController {
                     const handler = this.conversations.get(msg.from).handler;
                     const lastInteraction = this.conversations.get(msg.from).lastInteraction;
                     const timeDiff = new Date().getTime() - lastInteraction.getTime();
-                    if (handler.state == "COMPLETED" || timeDiff < maxTime) {
+                    if (handler.state == "COMPLETED" || timeDiff > maxTime) {
+                        console.log("Cortamos Handler")
                         // Borramos el handler de la conversación
                         this.conversations.delete(msg.from);
                         return;
