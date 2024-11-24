@@ -100,7 +100,7 @@ function task_specific_instructions(user_input: string) {
   JSON FINAL:
   
   user_tuning_details({
-    "day_check": "NULL",
+    "day_check": null,
     "sober_days": "5",
     "night_check": "20:00"
   })
@@ -204,7 +204,7 @@ const TOOLS: Tool[] = [
         day_check: {
           type: "string",
           description:
-            "Hora del usuario para el inicio diurno de su conversación (opcional). Poner NULL en caso de que no desee check-in diurno. Ejemplo: 13:00",
+            "Hora del usuario para el inicio diurno de su conversación (opcional). Pasar `null` en caso de que no desee check-in diurno. Ejemplo: 13:00",
         },
         sober_days: {
           type: "number",
@@ -309,7 +309,7 @@ class OnboardingHandler {
    * @returns Promise with the assistant's response
    */
   public async handleMessage(message: string | undefined): Promise<string[]> {
-    if (this.messages.length === 0 && message !== undefined) {
+    if (this.messages.length === 0 && message) {
       this.addUserMessage(task_specific_instructions(message));
     } else if (message) {
       this.addUserMessage(message);
@@ -460,6 +460,14 @@ class OnboardingHandler {
   }
 
   private addToolResult(tool_block: ToolUseBlock, result: string): void {
+    this.messages.push({
+      role: "assistant",
+      content: [
+        {
+          ...tool_block,          
+        },
+      ],
+    });
     this.messages.push({
       role: "user",
       content: [
