@@ -34,7 +34,6 @@ class IdleHandler {
   private conversationState: ConversationState;
   private readonly basePrompt: Message[];
   private readonly claude: Anthropic;
-  private isFirstMessage: boolean;
 
   constructor(userMessage: string, userProfile: string) {
     this.claude = new Anthropic({
@@ -60,22 +59,12 @@ class IdleHandler {
               text: "Entendido."
             }
           ]
-        },
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: userMessage
-            }
-          ]
         }
       ]
     };
     
 
     
-    this.isFirstMessage = true;
   }
 
   /**
@@ -103,7 +92,8 @@ class IdleHandler {
         model: config.claude.model,
         max_tokens: config.claude.maxTokens,
         temperature: config.claude.temperature,
-        messages: this.conversationState.messages
+        messages: this.conversationState.messages,
+        system: "Eres un compañero de apoyo por WhatsApp para personas trabajando en su relación con el alcohol. Mantienes un tono cercano y natural, como un amigo comprensivo que sabe escuchar."
       });
       if (response.content[0].type !== 'text') {
             throw new Error('Unexpected response type from Claude');
@@ -134,7 +124,6 @@ class IdleHandler {
     this.conversationState = {
       messages: []
     };
-    this.isFirstMessage = true;
   }
 
   /**

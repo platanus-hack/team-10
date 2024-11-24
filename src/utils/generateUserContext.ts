@@ -24,7 +24,7 @@ function generateUserContext(user: User) {
     const today = new Date();
     const startDate = new Date(sobrietyStartDate);
     // Only calculate if date is valid and not in the future
-    if (!isNaN(startDate) && startDate <= today) {
+    if (startDate && startDate <= today) {
       const days = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
       if (days > 30) {
         const months = Math.floor(days / 30);

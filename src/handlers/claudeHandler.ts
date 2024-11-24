@@ -18,7 +18,7 @@ class ClaudeHandler {
   private readonly claude: Anthropic;
   state: "ACTIVE" | "COMPLETED" = "ACTIVE";
 
-  constructor(userProfile: string) {
+  constructor(userProfile: string, trigeringEvent: string) {
     this.claude = new Anthropic({
       apiKey: config.claude.apiKey
     });
@@ -49,7 +49,8 @@ class ClaudeHandler {
         model: config.claude.model,
         max_tokens: config.claude.maxTokens,
         temperature: config.claude.temperature,
-        messages: this.conversationState.messages
+        messages: this.conversationState.messages,
+        system: "Eres un compañero de apoyo por WhatsApp para personas trabajando en su relación con el alcohol. Mantienes un tono cercano y natural, como un amigo comprensivo que sabe escuchar.",
       });
 
       if (response.content[0].type !== 'text') {
@@ -87,7 +88,8 @@ class ClaudeHandler {
         model: config.claude.model,
         max_tokens: config.claude.maxTokens,
         temperature: config.claude.temperature,
-        messages: this.conversationState.messages
+        messages: this.conversationState.messages,
+        system: "Eres un compañero de apoyo por WhatsApp para personas trabajando en su relación con el alcohol. Mantienes un tono cercano y natural, como un amigo comprensivo que sabe escuchar.",
       });
 
       if (response.content[0].type !== 'text') {
