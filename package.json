@@ -37,7 +37,6 @@
   "devDependencies": {
     "nodemon": "^3.1.7",
     "prisma": "^5.22.0",
-    "@types/bun": "latest"
   },
   "overrides": {
     "ws": "^8.17.0"
