@@ -202,7 +202,7 @@ const TOOLS: Tool[] = [
             "Hora del usuario para el inicio nocturno de su conversación. Ejemplo: 13:00",
         },
         day_check: {
-          type: "string",
+          type: ["string", "null"],
           description:
             "Hora del usuario para el inicio diurno de su conversación (opcional). Pasar `null` en caso de que no desee check-in diurno. Ejemplo: 13:00",
         },
@@ -398,6 +398,7 @@ class OnboardingHandler {
   }
 
   private async createUserProfile(): Promise<User> {
+    console.debug("Creating user profile in database");
     // Today - sober_days
     const sobrietyStartDate = new Date();
     sobrietyStartDate.setDate(
