@@ -1,7 +1,6 @@
 import { Client, LocalAuth } from 'whatsapp-web.js';
 import qrcode from 'qrcode-terminal';
 import MessageController from '../controllers/messageController';
-import StateHandler from '../handlers/stateHandler';
 
 class WhatsAppBot {
     constructor() {
@@ -92,4 +91,4 @@ class WhatsAppBot {
     }
 }
 
-export default WhatsAppBot; 
+export default WhatsAppBot;
