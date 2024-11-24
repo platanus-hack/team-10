@@ -9,7 +9,13 @@ interface Message {
   }>;
 }
 
+export type idleStep =
+  | "ACTIVE"
+  | "COMPLETED";
 
+interface idleState {
+  step: idleStep;
+}
 interface ConversationState {
   messages: Message[];
 }
@@ -23,6 +29,8 @@ interface UserBackground {
   }
 
 class IdleHandler {
+
+  state: "ACTIVE" | "COMPLETED" = "ACTIVE";
   private conversationState: ConversationState;
   private readonly basePrompt: Message[];
   private readonly claude: Anthropic;
@@ -85,6 +93,10 @@ class IdleHandler {
       ]
     });
 
+    if (this.isTerminalMessage(message)) {
+      this.state = "COMPLETED";
+    }
+
     try {
       const response = await this.claude.messages.create({
         model: config.claude.model,
@@ -140,6 +152,12 @@ class IdleHandler {
       ]
     };
     this.conversationState.messages.push(assistantMessage);
+  }
+
+  private isTerminalMessage(message: string): boolean {
+    // check if message contains any word in list
+    const terminalWords = ['terminar', 'finalizar', 'salir', 'cerrar', 'adios', 'chao', 'cerrar conversación'];
+    return terminalWords.some(word => message.toLowerCase().includes(word));
   }
 }
 

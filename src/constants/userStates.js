@@ -10,6 +10,7 @@ const UserStates = {
 
   // Check-in states
   CHECKIN: 'CHECKIN',
+
 };
 
 export default UserStates;

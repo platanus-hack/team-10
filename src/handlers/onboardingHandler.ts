@@ -182,7 +182,7 @@ const interpretationContexts: Record<InterpretableStep, InterpretationContext> =
 };
 
 export class OnboardingHandler {
-  private state: OnboardingState = {
+    state: OnboardingState = {
     step: "WELCOME",
     data: {},
     retryCount: 0,
