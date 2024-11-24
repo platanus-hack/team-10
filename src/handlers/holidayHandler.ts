@@ -26,7 +26,7 @@ export class HolidayHandler {
         const userContext = generateUserContext(this.user);
         
         const prompt = `
-        Eres un asistente de apoyo para personas en recuperación del alcohol. Estás teniendo una conversación sobre una festividad próxima.
+        Eres un asistente de IA que ayuda a un usuario que intenta dejar el alcohol. En particular, debes ayudarlo porque se viene una fecha complicado para este por una festividad.
 
         CONTEXTO:
         - Festividad: ${this.holiday.name}
