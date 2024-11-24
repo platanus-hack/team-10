@@ -2,6 +2,7 @@ const UserStates = require('../constants/userStates');
 const ClaudeService = require('../services/claudeService');
 const StateHandler = require('../handlers/stateHandler');
 const prisma = require('../lib/prisma').default;
+const { getIDLEMessage, activeConversations} = require('../utils/helpers');
 
 class MessageController {
     constructor(client) {
@@ -34,6 +35,7 @@ class MessageController {
                         lastInteraction: new Date()
                     }
                 });
+
 
                 // If user was just created, start onboarding
                 if (user.currentState === UserStates.ONBOARDING && !user.name) {
@@ -95,7 +97,39 @@ class MessageController {
         );
     }
 
+
+    async handleIdle(msg) {
+        const user = await this.prisma.user.findUnique({
+            where: { phoneNumber: msg.from }
+        });
+        userProfile = {
+            gender: user.gender,
+            workStatus: user.workStatus,
+            age: user.age,
+            relationshipStatus: user.relationshipStatus,
+            homeStatus: user.homeStatus,
+        }
+        msg.body = getIDLEMessage(userProfile);
+        const response = await this.claudeService.sendPrompt(msg.body);
+        activeConversations[msg.from].push(msg);
+        console.log(response)
+        await msg.reply(response);
+        
+        await this.prisma.user.update({
+            where: { phoneNumber: msg.from },
+            data: {
+                lastMessage: msg.body,
+                totalMessages: { increment: 1 },
+                allMessages: { push: msg.body },
+                lastInteraction: new Date()
+            }
+        });
+        
+        await this.stateHandler.clearState(msg.from);
+    }
+        
     async handleConversation(msg) {
+        // msg.body = 
         const response = await this.claudeService.sendPrompt(msg.body);
         await msg.reply(response);
         
