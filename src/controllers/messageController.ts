@@ -104,7 +104,7 @@ class MessageController {
 
   async handleMessage(msg: Message) {
     try {
-      if (!CONTACT_hHITELIST.includes(msg.from)) {
+      if (!CONTACT_WHITELIST.includes(msg.from)) {
         console.log("Unauthorized user:", msg.from);
         return;
       }
