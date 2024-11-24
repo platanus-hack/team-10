@@ -1,6 +1,5 @@
 import prisma from './lib/prisma';
 import WhatsAppBot from './services/whatsappBot';
-const app = require('./app');
 
 async function main() {
     try {
@@ -12,41 +11,23 @@ async function main() {
         const whatsappBot = new WhatsAppBot();
         await whatsappBot.initialize();
         
-        // Start your server
-        const port = process.env.PORT || 3000;
-        const server = app.listen(port, () => {
-            console.log(`Server is running on http://localhost:${port}`);
-        });
-
+        console.log('Application started successfully');
+        
         // Graceful shutdown
-        process.on('SIGTERM', async () => {
-            console.log('SIGTERM received. Closing HTTP server and database connections...');
-            await Promise.all([
-                new Promise(resolve => server.close(resolve)),
-                prisma.$disconnect()
-            ]);
-            console.log('Server and database connections closed.');
+        const shutdown = async () => {
+            console.log('Shutdown signal received. Closing connections...');
+            await prisma.$disconnect();
+            console.log('Database connections closed.');
             process.exit(0);
-        });
+        };
 
-        process.on('SIGINT', async () => {
-            console.log('SIGINT received. Closing HTTP server and database connections...');
-            await Promise.all([
-                new Promise(resolve => server.close(resolve)),
-                prisma.$disconnect()
-            ]);
-            console.log('Server and database connections closed.');
-            process.exit(0);
-        });
+        process.on('SIGTERM', shutdown);
+        process.on('SIGINT', shutdown);
 
     } catch (error) {
-        console.error('Failed to start server:', error);
+        console.error('Failed to start application:', error);
         process.exit(1);
     }
 }
 
-main()
-    .catch((e) => {
-        console.error(e);
-        process.exit(1);
-    });
+main();

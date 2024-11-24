@@ -35,19 +35,32 @@ export class OnboardingHandler {
     retryCount: 0,
   };
 
-  private readonly MAX_RETRIES = 3;
+  private readonly MAX_RETRIES = 5;
 
   constructor(private readonly phoneNumber: string) {
     if (!phoneNumber) {
       throw new Error("Phone number is required for onboarding");
     }
+    
   }
 
   public get currentStep(): OnboardingStep {
     return this.state.step;
   }
 
+  private getGenderEnding(): string {
+    switch (this.state.data.gender) {
+      case "MALE":
+        return "o";
+      case "FEMALE":
+        return "a";
+      default:
+        return "e";
+    }
+  }
+
   private getPromptForStep(step: OnboardingStep): string[] {
+    const genderEnding = this.getGenderEnding();
     const prompts: Record<OnboardingStep, string[]> = {
       WELCOME: [
         "¡Hola! Un gusto conocerte, mi nombre es SoBuddy y seré tu compañero en este proceso. 🤝",
@@ -69,7 +82,7 @@ export class OnboardingHandler {
       ],
       WORK_STATUS: [
         "Entiendo. Y cuéntame, ¿a qué te dedicas actualmente?",
-        "¿Trabajas? ¿Estudias? Puedes ser tan detallad@ como desees.",
+        `¿Trabajas? ¿Estudias? Puedes ser tan detallad${genderEnding} como desees.`,
       ],
       HOME_STATUS: [
         "Y actualmente, ¿con quién vives?",
@@ -77,7 +90,7 @@ export class OnboardingHandler {
       ],
       PROBLEM_HISTORY: [
         "Ahora vamos a hablar de algo un poco más personal.",
-        "Recuerda que esta es una conversación privada y confidencial. Si en algún momento te sientes incómod@, podemos hacer una pausa.",
+        `Recuerda que esta es una conversación privada y confidencial. Si en algún momento te sientes incómod${genderEnding}, podemos hacer una pausa.`,
         "¿Hace cuánto tiempo presentas este problema con el alcohol y hace cuánto estás trabajando para dejarlo o reducirlo?",
       ],
       TRIGGERS: [
@@ -102,7 +115,7 @@ export class OnboardingHandler {
         "Puede ser hoy o cualquier otra fecha significativa para ti.",
       ],
       COMPLETED: [
-        "¡Perfecto! Ya estamos list@s para comenzar este proceso juntos. 🌟",
+        "¡Perfecto! Ya estamos listos para comenzar este proceso juntos. 🌟",
         "Estaré aquí para apoyarte en cada paso del camino.",
         "Recuerda que puedes escribirme en cualquier momento si necesitas ayuda o simplemente quieres conversar.",
       ],
@@ -314,7 +327,7 @@ export class OnboardingHandler {
             return this.getPromptForStep("HOME_STATUS");
           }
           return this.handleRetry(
-            "¿Podrías decirme si trabajas, estudias, estás retirad@, o cuál es tu situación actual?"
+            `¿Podrías decirme si trabajas, estudias, estás retirad${this.getGenderEnding()}, o cuál es tu situación actual?`
           );
 
         case "HOME_STATUS":
@@ -332,7 +345,7 @@ export class OnboardingHandler {
             return this.getPromptForStep("PROBLEM_HISTORY");
           }
           return this.handleRetry(
-            "¿Podrías decirme si vives sol@, con familia, con compañeros de piso, u otra situación?"
+            `¿Podrías decirme si vives sol${this.getGenderEnding()}, con familia, con compañeros de piso, u otra situación?`
           );
 
         case "PROBLEM_HISTORY":
@@ -361,7 +374,7 @@ export class OnboardingHandler {
             "Para ayudarte mejor, necesito entender en qué momentos necesitas más apoyo.\n" +
               "¿Podrías mencionar situaciones específicas? Por ejemplo:\n" +
               '- "Los viernes por la noche"\n' +
-              '- "Cuando estoy estresad@"\n' +
+              `- "Cuando estoy estresad${this.getGenderEnding()}"\n` +
               '- "En reuniones sociales"'
           );
 

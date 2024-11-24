@@ -1,7 +1,6 @@
 import { OnboardingHandler } from '../handlers/onboardingHandler';
 import type Anthropic from '@anthropic-ai/sdk';
 import IdleHandler from '../handlers/idleHandler';
-import type WhatsAppBot from '../services/whatsappBot';
 import type { Message } from 'whatsapp-web.js';
 import generateUserContext from '../utils/generateUserContext';
 import prisma from '../lib/prisma';

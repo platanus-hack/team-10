@@ -25,11 +25,9 @@ services:
       context: .
       dockerfile: docker/Dockerfile
     restart: unless-stopped
-    ports:
-      - "3000:3000"
     volumes:
       - whatsapp-auth:/usr/src/app/.wwebjs_auth
-      - whatsapp-cache:/usr/src/app/.wwebjs_cach
+      - whatsapp-cache:/usr/src/app/.wwebjs_cache
       - ./src:/usr/src/app/src
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres

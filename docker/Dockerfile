@@ -65,7 +65,5 @@ RUN mkdir -p /usr/src/app/.wwebjs_auth /usr/src/app/.wwebjs_cache && \
 # Switch to non-root user
 USER bun
 
-EXPOSE 3000
-
 # Run migrations and start the app
 CMD ["sh", "-c", "bun run prisma generate && bun run prisma migrate deploy && bun run start"]
