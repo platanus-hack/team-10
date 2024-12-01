@@ -1,4 +1,5 @@
-# SoBuddy: Tu Compañero de Recuperación en WhatsApp
+# SoBuddy 
+## Tu Compañero de Recuperación en WhatsApp
 
 SoBuddy es un asistente de IA que te acompaña en tu viaje hacia una vida libre de alcohol, directamente a través de WhatsApp. Diseñado específicamente para el contexto chileno, SoBuddy combina la accesibilidad de la mensajería instantánea con la potencia de Claude AI para ofrecer apoyo personalizado 24/7.
 
